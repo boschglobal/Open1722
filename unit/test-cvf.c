@@ -35,9 +35,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#include "avtp/CommonHeader.h"
-#include "avtp/cvf/Cvf.h"
-#include "avtp/cvf/H264.h"
+#include "avtp/pdu/CommonHeader.h"
+#include "avtp/pdu/cvf/Cvf.h"
+#include "avtp/pdu/cvf/H264.h"
 
 static void cvf_get_field_null_pdu(void **state)
 {

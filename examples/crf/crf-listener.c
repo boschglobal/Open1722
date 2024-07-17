@@ -99,10 +99,10 @@
 #include <math.h>
 #include <inttypes.h>
 
-#include "avtp/Crf.h"
-#include "avtp/aaf/PcmStream.h"
+#include "avtp/pdu/Crf.h"
+#include "avtp/pdu/aaf/PcmStream.h"
 #include "common/common.h"
-#include "avtp/CommonHeader.h"
+#include "avtp/pdu/CommonHeader.h"
 
 #define AAF_STREAM_ID		0xAABBCCDDEEFF0001
 #define AAF_NUM_SAMPLES 	6 /* Number of samples per packet. */

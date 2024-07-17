@@ -37,8 +37,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "avtp/acf/Can.h"
-#include "avtp/acf/CanBrief.h"
+#include "avtp/pdu/acf/Can.h"
+#include "avtp/pdu/acf/CanBrief.h"
 
 #define MAX_PDU_SIZE        1500
 #define CAN_PAYLOAD_SIZE    8

@@ -72,9 +72,9 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#include "avtp/cvf/Cvf.h"
-#include "avtp/cvf/H264.h"
-#include "avtp/CommonHeader.h"
+#include "avtp/pdu/cvf/Cvf.h"
+#include "avtp/pdu/cvf/H264.h"
+#include "avtp/pdu/CommonHeader.h"
 #include "common/common.h"
 
 #define STREAM_ID				0xAABBCCDDEEFF0001

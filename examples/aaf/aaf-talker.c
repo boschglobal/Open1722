@@ -64,9 +64,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "avtp/aaf/PcmStream.h"
+#include "avtp/pdu/aaf/PcmStream.h"
 #include "common/common.h"
-#include "avtp/CommonHeader.h"
+#include "avtp/pdu/CommonHeader.h"
 
 #define STREAM_ID		0xAABBCCDDEEFF0001
 #define SAMPLE_SIZE		2 /* Sample size in bytes. */

@@ -32,8 +32,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#include "avtp/CommonHeader.h"
-#include "avtp/aaf/PcmStream.h"
+#include "avtp/pdu/CommonHeader.h"
+#include "avtp/pdu/aaf/PcmStream.h"
 
 static void aaf_get_field_null_pdu(void **state)
 {

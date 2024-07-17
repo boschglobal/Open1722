@@ -36,8 +36,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "avtp/CommonHeader.h"
-#include "avtp/Rvf.h"
+#include "avtp/pdu/CommonHeader.h"
+#include "avtp/pdu/Rvf.h"
 
 static void rvf_get_field_null_pdu(void **state)
 {

@@ -42,12 +42,12 @@
 #include <sys/ioctl.h>
 
 #include "common/common.h"
-#include "avtp/Udp.h"
-#include "avtp/acf/Ntscf.h"
-#include "avtp/acf/Tscf.h"
-#include "avtp/acf/Common.h"
-#include "avtp/acf/Can.h"
-#include "avtp/CommonHeader.h"
+#include "avtp/pdu/Udp.h"
+#include "avtp/pdu/acf/Ntscf.h"
+#include "avtp/pdu/acf/Tscf.h"
+#include "avtp/pdu/acf/Common.h"
+#include "avtp/pdu/acf/Can.h"
+#include "avtp/pdu/CommonHeader.h"
 
 #define MAX_PDU_SIZE                1500
 

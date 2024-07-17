@@ -12,24 +12,24 @@ set(LIBRARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}/lib")
 
 # PDU parsing library
 add_library(open1722pdu SHARED 
-    "src/avtp/CommonHeader.c"
-    "src/avtp/Crf.c"
-    "src/avtp/Rvf.c"
-    "src/avtp/Udp.c"
-    "src/avtp/Utils.c"
-    "src/avtp/aaf/CommonStream.c"
-    "src/avtp/aaf/PcmStream.c"
-    "src/avtp/acf/Can.c"
-    "src/avtp/acf/CanBrief.c"
-    "src/avtp/acf/Common.c"
-    "src/avtp/acf/Ntscf.c"
-    "src/avtp/acf/Sensor.c"
-    "src/avtp/acf/SensorBrief.c"
-    "src/avtp/acf/Tscf.c"
-    "src/avtp/cvf/Cvf.c"
-    "src/avtp/cvf/H264.c"
-    "src/avtp/cvf/Jpeg2000.c"
-    "src/avtp/cvf/Mjpeg.c")
+    "src/avtp/pdu/CommonHeader.c"
+    "src/avtp/pdu/Crf.c"
+    "src/avtp/pdu/Rvf.c"
+    "src/avtp/pdu/Udp.c"
+    "src/avtp/pdu/Utils.c"
+    "src/avtp/pdu/aaf/CommonStream.c"
+    "src/avtp/pdu/aaf/PcmStream.c"
+    "src/avtp/pdu/acf/Can.c"
+    "src/avtp/pdu/acf/CanBrief.c"
+    "src/avtp/pdu/acf/Common.c"
+    "src/avtp/pdu/acf/Ntscf.c"
+    "src/avtp/pdu/acf/Sensor.c"
+    "src/avtp/pdu/acf/SensorBrief.c"
+    "src/avtp/pdu/acf/Tscf.c"
+    "src/avtp/pdu/cvf/Cvf.c"
+    "src/avtp/pdu/cvf/H264.c"
+    "src/avtp/pdu/cvf/Jpeg2000.c"
+    "src/avtp/pdu/cvf/Mjpeg.c")
 target_include_directories(open1722pdu PRIVATE "${PROJECT_BINARY_DIR}/include")
 
 # link_directories(lib)

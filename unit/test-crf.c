@@ -33,8 +33,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "avtp/CommonHeader.h"
-#include "avtp/Crf.h"
+#include "avtp/pdu/CommonHeader.h"
+#include "avtp/pdu/Crf.h"
 
 static void crf_get_field_null_pdu(void **state)
 {

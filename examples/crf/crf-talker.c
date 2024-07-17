@@ -62,9 +62,9 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "avtp/Crf.h"
+#include "avtp/pdu/Crf.h"
 #include "common/common.h"
-#include "avtp/CommonHeader.h"
+#include "avtp/pdu/CommonHeader.h"
 
 #define STREAM_ID		0xAABBCCDDEEFF0002
 
