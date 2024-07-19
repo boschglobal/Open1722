@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "avtp/pdu/acf/Tscf.h"
-#include "avtp/pdu/Utils.h" 
+#include "avtp/pdu/Utils.h"
 #include "avtp/pdu/CommonHeader.h"
 
 /**

@@ -32,7 +32,7 @@
 
 #include "avtp/pdu/acf/Common.h"
 #include "avtp/pdu/acf/CanBrief.h"
-#include "avtp/pdu/Utils.h" 
+#include "avtp/pdu/Utils.h"
 #include "avtp/pdu/Defines.h"
 
 /**

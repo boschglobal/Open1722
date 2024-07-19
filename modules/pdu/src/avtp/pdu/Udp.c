@@ -29,47 +29,39 @@
 
 #include <errno.h>
 #include <string.h>
-
-#include "avtp/pdu/acf/Common.h"
-#include "avtp/pdu/acf/SensorBrief.h"
-#include "avtp/pdu/Utils.h" 
+#include "avtp/pdu/Udp.h"
+#include "avtp/pdu/Utils.h"
 #include "avtp/pdu/Defines.h"
 
 /**
- * This table maps all IEEE 1722 ACF Abbreviated Sensor header fields to a descriptor.
+ * This table maps all IEEE 1722 UDP-specific header fields to a descriptor.
  */
-static const Avtp_FieldDescriptor_t Avtp_SensorBriefFieldDesc[AVTP_SENSOR_FIELD_MAX] =
-{
+static const Avtp_FieldDescriptor_t Avtp_UDPFieldDesc[AVTP_UDP_FIELD_MAX] = {
 
-    /* ACF common header fields */
-    [AVTP_SENSOR_BRIEF_FIELD_ACF_MSG_TYPE]      = { .quadlet = 0, .offset = 0, .bits = 7 },
-    [AVTP_SENSOR_BRIEF_FIELD_ACF_MSG_LENGTH]    = { .quadlet = 0, .offset = 7, .bits = 9 },  
-
-    /* ACF Abbreviated Sensor header fields */   
-    [AVTP_SENSOR_BRIEF_FIELD_MTV]               = { .quadlet = 0, .offset = 16, .bits = 1 },
-    [AVTP_SENSOR_BRIEF_FIELD_NUM_SENSOR]        = { .quadlet = 0, .offset = 17, .bits = 7 },
-    [AVTP_SENSOR_BRIEF_FIELD_SZ]                = { .quadlet = 0, .offset = 24, .bits = 2 },
-    [AVTP_SENSOR_BRIEF_FIELD_SENSOR_GROUP]      = { .quadlet = 0, .offset = 26, .bits = 6 },    
+    [AVTP_UDP_FIELD_ENCAPSULATION_SEQ_NO]       = { .quadlet = 0, .offset = 0, .bits = 32 },
 };
 
-int Avtp_SensorBrief_Init(Avtp_SensorBrief_t* sensor_pdu)
-{
-    if(!sensor_pdu) {
+int Avtp_UDP_Init(Avtp_UDP_t* pdu) {
+
+    int res = 0;
+
+    if (!pdu)
         return -EINVAL;
-    }
 
-    memset(sensor_pdu, 0, sizeof(Avtp_SensorBrief_t));  
-    Avtp_SensorBrief_SetField(sensor_pdu, AVTP_SENSOR_BRIEF_FIELD_ACF_MSG_TYPE, AVTP_ACF_TYPE_SENSOR_BRIEF);
+    memset(pdu, 0, sizeof(Avtp_UDP_t));
 
-    return 0;
+    res = Avtp_SetField(Avtp_UDPFieldDesc, AVTP_UDP_FIELD_MAX, (uint8_t*) pdu, 
+                         AVTP_UDP_FIELD_ENCAPSULATION_SEQ_NO, 0);
+
+    return res;
 }
 
-int Avtp_SensorBrief_GetField(Avtp_SensorBrief_t* sensor_pdu, Avtp_SensorBriefFields_t field, uint64_t* value)
-{    
-    return Avtp_GetField(Avtp_SensorBriefFieldDesc, AVTP_SENSOR_FIELD_MAX, (uint8_t *) sensor_pdu, (uint8_t) field, value);        
+int Avtp_UDP_GetField(Avtp_UDP_t* pdu, 
+                            Avtp_UDPFields_t field, uint64_t* value) {
+    return Avtp_GetField(Avtp_UDPFieldDesc, AVTP_UDP_FIELD_MAX, (uint8_t*) pdu, (uint8_t) field, value);
 }
 
-int Avtp_SensorBrief_SetField(Avtp_SensorBrief_t* sensor_pdu, Avtp_SensorBriefFields_t field, uint64_t value)
-{    
-    return Avtp_SetField(Avtp_SensorBriefFieldDesc, AVTP_SENSOR_FIELD_MAX, (uint8_t *) sensor_pdu, (uint8_t) field, value);        
+int Avtp_UDP_SetField(Avtp_UDP_t* pdu, 
+                            Avtp_UDPFields_t field, uint64_t value) {
+    return Avtp_SetField(Avtp_UDPFieldDesc, AVTP_UDP_FIELD_MAX, (uint8_t*) pdu, (uint8_t) field, value); 
 }

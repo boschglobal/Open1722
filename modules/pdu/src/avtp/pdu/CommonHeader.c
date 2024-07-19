@@ -29,46 +29,47 @@
 
 #include <errno.h>
 #include <string.h>
-
-#include "avtp/pdu/acf/Ntscf.h"
-#include "avtp/pdu/Utils.h" 
-#include "avtp/pdu/Defines.h"
 #include "avtp/pdu/CommonHeader.h"
+#include "avtp/pdu/Utils.h"
+#include "avtp/pdu/Defines.h"
 
 /**
- * This table maps all IEEE 1722 NTSCF-specific header fields to a descriptor.
+ * This table maps all IEEE 1722 common header fields to a descriptor.
  */
-static const Avtp_FieldDescriptor_t Avtp_NtscfFieldDesc[AVTP_NTSCF_FIELD_MAX] =
-{    
+static const Avtp_FieldDescriptor_t Avtp_CommonHeaderFieldDesc[AVTP_COMMON_HEADER_FIELD_MAX] = {
     /* Common AVTP header */
-    [AVTP_NTSCF_FIELD_SUBTYPE]              = { .quadlet = 0, .offset = 0, .bits = 8 },
-    [AVTP_NTSCF_FIELD_SV]                   = { .quadlet = 0, .offset = 8, .bits = 1 },
-    [AVTP_NTSCF_FIELD_VERSION]              = { .quadlet = 0, .offset = 9, .bits = 3 },
-    /* NTSCF header */    
-    [AVTP_NTSCF_FIELD_NTSCF_DATA_LENGTH]    = { .quadlet = 0, .offset = 13, .bits = 11 },
-    [AVTP_NTSCF_FIELD_SEQUENCE_NUM]         = { .quadlet = 0, .offset = 24, .bits = 8 },
-    [AVTP_NTSCF_FIELD_STREAM_ID]            = { .quadlet = 1, .offset = 0, .bits = 64 },
+    [AVTP_COMMON_HEADER_FIELD_SUBTYPE]            = { .quadlet = 0, .offset = 0, .bits = 8 },
+    [AVTP_COMMON_HEADER_FIELD_H]                  = { .quadlet = 0, .offset = 8, .bits = 1 },
+    [AVTP_COMMON_HEADER_FIELD_VERSION]            = { .quadlet = 0, .offset = 9, .bits = 3 },
 };
 
-int Avtp_Ntscf_Init(Avtp_Ntscf_t* pdu)
+int Avtp_CommonHeader_GetField(Avtp_CommonHeader_t* avtp_pdu, Avtp_CommonHeaderField_t field, uint64_t* value)
 {
-    if (!pdu) {
-        return -EINVAL;
-    }
-
-    memset(pdu, 0, sizeof(Avtp_Ntscf_t));
-    Avtp_Ntscf_SetField(pdu, AVTP_NTSCF_FIELD_SUBTYPE, AVTP_SUBTYPE_NTSCF);
-    Avtp_Ntscf_SetField(pdu, AVTP_NTSCF_FIELD_SV, 1);
-
-    return 0;
+    return Avtp_GetField(Avtp_CommonHeaderFieldDesc, AVTP_COMMON_HEADER_FIELD_MAX, (uint8_t*)avtp_pdu, (uint8_t)field, value);        
 }
 
-int Avtp_Ntscf_GetField(Avtp_Ntscf_t* pdu, Avtp_NtscfFields_t field, uint64_t* value)
+int Avtp_CommonHeader_SetField(Avtp_CommonHeader_t* avtp_pdu, Avtp_CommonHeaderField_t field, uint64_t value)
 {
-    return Avtp_GetField(Avtp_NtscfFieldDesc, AVTP_NTSCF_FIELD_MAX, (uint8_t*)pdu, (uint8_t) field, value);
+    return Avtp_SetField(Avtp_CommonHeaderFieldDesc, AVTP_COMMON_HEADER_FIELD_MAX, (uint8_t*)avtp_pdu, (uint8_t)field, value);        
 }
 
-int Avtp_Ntscf_SetField(Avtp_Ntscf_t* pdu, Avtp_NtscfFields_t field, uint64_t value)
+/******************************************************************************
+ * Legacy API
+ *****************************************************************************/
+int avtp_pdu_get(const struct avtp_common_pdu *pdu, Avtp_CommonHeaderField_t field,
+                                uint32_t *val)
 {
-    return Avtp_SetField(Avtp_NtscfFieldDesc, AVTP_NTSCF_FIELD_MAX, (uint8_t*)pdu, (uint8_t) field, value); 
+    uint64_t temp;
+    int ret;
+    ret = Avtp_CommonHeader_GetField((Avtp_CommonHeader_t*) pdu, field, &temp);
+    if (val == NULL) return -EINVAL;
+    
+    *val = (uint32_t)temp;
+    return ret;
+}
+
+int avtp_pdu_set(struct avtp_common_pdu *pdu, Avtp_CommonHeaderField_t field,
+                                uint32_t value)
+{
+    return Avtp_CommonHeader_SetField((Avtp_CommonHeader_t*) pdu, field, value);
 }

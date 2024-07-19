@@ -33,8 +33,9 @@ Alternatively, you can use VS Code to run the provided dev container which takes
 
 The first step to build Open1722 is to generate the Makefile and build the project.
 ```
-$ cd Open1722
-$ cmake .
+$ mkdir build
+$ cd build
+$ cmake ..
 $ make
 ```
 

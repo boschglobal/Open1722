@@ -4,17 +4,5 @@
 /lib
 /release
 
-# CMake
-/CMakeFiles
-/CMakeCache.txt
-/CTestTestfile.cmake
-/cmake_install.cmake
-/Makefile
-/Testing
-/CPackConfig.cmake
-/CPackSourceConfig.cmake
-/install_manifest.txt
-/_CPack_Packages
-
 *~
 .vscode

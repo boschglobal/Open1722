@@ -30,46 +30,45 @@
 #include <errno.h>
 #include <string.h>
 
-#include "avtp/pdu/acf/Common.h"
-#include "avtp/pdu/acf/Sensor.h"
-#include "avtp/pdu/Utils.h" 
+#include "avtp/pdu/acf/Ntscf.h"
+#include "avtp/pdu/Utils.h"
 #include "avtp/pdu/Defines.h"
+#include "avtp/pdu/CommonHeader.h"
 
 /**
- * This table maps all IEEE 1722 ACF Sensor header fields to a descriptor.
+ * This table maps all IEEE 1722 NTSCF-specific header fields to a descriptor.
  */
-static const Avtp_FieldDescriptor_t Avtp_SensorFieldDesc[AVTP_SENSOR_FIELD_MAX] =
-{
-    /* ACF common header fields */
-    [AVTP_SENSOR_FIELD_ACF_MSG_TYPE]        = { .quadlet = 0, .offset =  0, .bits = 7 },
-    [AVTP_SENSOR_FIELD_ACF_MSG_LENGTH]      = { .quadlet = 0, .offset =  7, .bits = 9 },  
-    /* ACF Sensor header fields */   
-    [AVTP_SENSOR_FIELD_MTV]                 = { .quadlet = 0, .offset = 16, .bits = 1 },
-    [AVTP_SENSOR_FIELD_NUM_SENSOR]          = { .quadlet = 0, .offset = 17, .bits = 7 },
-    [AVTP_SENSOR_FIELD_SZ]                  = { .quadlet = 0, .offset = 24, .bits = 2 },
-    [AVTP_SENSOR_FIELD_SENSOR_GROUP]        = { .quadlet = 0, .offset = 26, .bits = 6 },
-    [AVTP_SENSOR_FIELD_MESSAGE_TIMESTAMP]   = { .quadlet = 1, .offset =  0, .bits = 64 },    
+static const Avtp_FieldDescriptor_t Avtp_NtscfFieldDesc[AVTP_NTSCF_FIELD_MAX] =
+{    
+    /* Common AVTP header */
+    [AVTP_NTSCF_FIELD_SUBTYPE]              = { .quadlet = 0, .offset = 0, .bits = 8 },
+    [AVTP_NTSCF_FIELD_SV]                   = { .quadlet = 0, .offset = 8, .bits = 1 },
+    [AVTP_NTSCF_FIELD_VERSION]              = { .quadlet = 0, .offset = 9, .bits = 3 },
+    /* NTSCF header */    
+    [AVTP_NTSCF_FIELD_NTSCF_DATA_LENGTH]    = { .quadlet = 0, .offset = 13, .bits = 11 },
+    [AVTP_NTSCF_FIELD_SEQUENCE_NUM]         = { .quadlet = 0, .offset = 24, .bits = 8 },
+    [AVTP_NTSCF_FIELD_STREAM_ID]            = { .quadlet = 1, .offset = 0, .bits = 64 },
 };
 
-
-int Avtp_Sensor_Init(Avtp_Sensor_t* sensor_pdu)
+int Avtp_Ntscf_Init(Avtp_Ntscf_t* pdu)
 {
-    if(!sensor_pdu) {
+    if (!pdu) {
         return -EINVAL;
     }
 
-    memset(sensor_pdu, 0, sizeof(Avtp_Sensor_t));  
-    Avtp_Sensor_SetField(sensor_pdu, AVTP_SENSOR_FIELD_ACF_MSG_TYPE, AVTP_ACF_TYPE_SENSOR);
-    
+    memset(pdu, 0, sizeof(Avtp_Ntscf_t));
+    Avtp_Ntscf_SetField(pdu, AVTP_NTSCF_FIELD_SUBTYPE, AVTP_SUBTYPE_NTSCF);
+    Avtp_Ntscf_SetField(pdu, AVTP_NTSCF_FIELD_SV, 1);
+
     return 0;
 }
 
-int Avtp_Sensor_GetField(Avtp_Sensor_t* sensor_pdu, Avtp_SensorFields_t field, uint64_t* value)
-{    
-    return Avtp_GetField(Avtp_SensorFieldDesc, AVTP_SENSOR_FIELD_MAX, (uint8_t *) sensor_pdu, (uint8_t) field, value);        
+int Avtp_Ntscf_GetField(Avtp_Ntscf_t* pdu, Avtp_NtscfFields_t field, uint64_t* value)
+{
+    return Avtp_GetField(Avtp_NtscfFieldDesc, AVTP_NTSCF_FIELD_MAX, (uint8_t*)pdu, (uint8_t) field, value);
 }
 
-int Avtp_Sensor_SetField(Avtp_Sensor_t* sensor_pdu, Avtp_SensorFields_t field, uint64_t value)
-{    
-    return Avtp_SetField(Avtp_SensorFieldDesc, AVTP_SENSOR_FIELD_MAX, (uint8_t *) sensor_pdu, (uint8_t) field, value);        
+int Avtp_Ntscf_SetField(Avtp_Ntscf_t* pdu, Avtp_NtscfFields_t field, uint64_t value)
+{
+    return Avtp_SetField(Avtp_NtscfFieldDesc, AVTP_NTSCF_FIELD_MAX, (uint8_t*)pdu, (uint8_t) field, value); 
 }
