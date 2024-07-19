@@ -1,4 +1,4 @@
-![Status - Incubating](https://img.shields.io/static/v1?label=Status&message=Incubating&color=FEFF3A&style=for-the-badge) 
+![Status - Incubating](https://img.shields.io/static/v1?label=Status&message=Incubating&color=FEFF3A&style=for-the-badge)
 ![Status](https://github.com/covesa/open1722/actions/workflows/build-all.yml/badge.svg)
 
 # Open1722
@@ -71,5 +71,5 @@ The `examples/` directory provides sample applications which demonstrate the Ope
 
 To execute the IEEE 1722 CAN Talker application:
 ```
-$ ./bin/acf-can-talker
+$ ./build/acf-can-talker
 ```
