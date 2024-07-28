@@ -70,6 +70,11 @@ add_executable(cvf-talker "examples/cvf/cvf-talker.c")
 target_include_directories(cvf-talker PRIVATE "examples" "include")
 target_link_libraries(cvf-talker open1722pdu open1722examples)
 
+# CVF talker app
+add_executable(cvf-talker2 "examples/cvf/cvf-talker2.c")
+target_include_directories(cvf-talker2 PRIVATE "examples" "include")
+target_link_libraries(cvf-talker2 open1722pdu open1722examples)
+
 # CVF listener app
 add_executable(cvf-listener "examples/cvf/cvf-listener.c")
 target_include_directories(cvf-listener PRIVATE "examples" "include")

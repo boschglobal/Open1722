@@ -18,6 +18,13 @@ $ cvf-listener <args> | gst-launch-1.0 filesrc location=/dev/stdin \
   ! decodebin ! videoconvert ! autovideosink
 ```
 
+<!-- ```
+gst-launch-1.0 -e -q videotestsrc pattern=ball \
+  ! video/x-raw,width=192,height=144 \
+  ! jpegenc ! jpegdec \
+  ! videoconvert ! autovideosink
+``` -->
+
 ## CVF Talker
 This example implements a very simple CVF talker application which reads an H.264 byte-stream from stdin, creates CVF packets and transmit them via network.
 
