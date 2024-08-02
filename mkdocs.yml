@@ -1,0 +1,9 @@
+site_name: Open1722
+theme:
+  name: readthedocs
+nav:
+  - 'Home': 'index.md'
+  - 'Users Guide':
+    - 'Getting Started (Linux)': 'user-guide/getting-started.md'
+  - 'Developers Guide':
+    - 'Contributing': 'dev-guide/contributing.md'
