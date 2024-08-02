@@ -67,6 +67,8 @@ int Avtp_Cvf_Init(Avtp_Cvf_t* pdu)
     int ret;
     ret = Avtp_Cvf_SetField(pdu, AVTP_CVF_FIELD_SUBTYPE, AVTP_SUBTYPE_CVF);
     if (ret != 0) return ret;
+    ret = Avtp_Cvf_SetField(pdu, AVTP_CVF_FIELD_FORMAT, AVTP_CVF_FORMAT_RFC);
+    if (ret != 0) return ret;
     ret = Avtp_Cvf_SetField(pdu, AVTP_CVF_FIELD_SV, 1);
     if (ret != 0) return ret;
     

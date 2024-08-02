@@ -54,7 +54,7 @@
 #define DEFAULT_STREAM_ID               0xAABBCCDDEEFF0001
 #define MTU_SIZE                        1500
 #define BUFFER_SIZE                     (MTU_SIZE * 2)
-#define ARGUMENT_CODEC_SHORT            0x80
+#define CMD_ARG_CODEC_SHORT             0x80
 
 /******************************************************************************
  * Types
@@ -64,19 +64,28 @@
  * This struct holds all the client state for the CVF talker application
  */
 typedef struct {
+    /** Interface name (used in combination with raw Ethernet encapsulation). */
     char ifname[IFNAMSIZ];
+
+    /** Socket priority. */
     int priority;
+
+    /** Maximum transmission time in network in nanoseconds. */
     uint64_t max_transit_time_ns;
+
+    /** Buffer for constructing frames. */
     uint8_t buffer[BUFFER_SIZE];
+
+    /** Number of bytes in buffer that are in use. */
     size_t buffer_level;
 
     /** End of frame relative to buffer or -1 if not EOF found. */
     ssize_t eof;
 
-    /** Sequence counter */
+    /** Sequence counter. */
     uint8_t seq_num;
 
-    /** Fragment counter */
+    /** Fragment counter. */
     uint8_t fragment_num;
 
     /** If set to '1' use UDP otherwise raw Ethernet as transport protocol. */
@@ -112,14 +121,9 @@ static struct argp_option options[] = {
     {"dst-addr",            'd',                    "MACADDR",  0,  "Stream Destination MAC address" },
     {"ifname",              'i',                    "IFNAME",   0,  "Network Interface" },
     {"udp",                 'u',                    0,          0,  "Network Interface" },
-    {"codec",               ARGUMENT_CODEC_SHORT,   "CODEC",    0,  "Codec to be used. Supported codecs are 'h264' and 'mjpeg'. Default is 'h264'." },
+    {"codec",               CMD_ARG_CODEC_SHORT,    "CODEC",    0,  "Codec to be used. Supported codecs are 'h264' and 'mjpeg'. Default is 'h264'." },
     { 0 }
 };
-
-/**
- * Application state.
- */
-cvf_talker_state_t cvf_talker_state;
 
 /******************************************************************************
  * Function definitions
@@ -128,132 +132,136 @@ cvf_talker_state_t cvf_talker_state;
 /**
  * Initialize application state
  */
-static void init(int argc, char** argv);
+static void init(cvf_talker_state_t* app_state, int argc, char** argv);
 
 /**
  * Parse command line arguments
  */
-static error_t parse_arguments(int key, char *arg, struct argp_state *state);
+static error_t parse_arguments(int key, char *arg, struct argp_state *argp_state);
 
 /**
  * Initialize CVF headers
  *
  * @returns 0 if successful
  */
-static int init_pdu(void);
+static int init_pdu(cvf_talker_state_t* app_state);
+
+static size_t header_size(cvf_talker_state_t* app_state);
 
 /**
- * Returns pointer to start of payload within cvf_talker_state.buffer. The
- * exact start of the payload is not static and depends on the codec used.
- *
- * @return uint8_t* Pointer to payload part within cvf_talker_state.buffer
- */
-static uint8_t* payload_ptr(void);
-
-/**
- * Copy video data from input file descriptor cvf_talker_state.input_fd to the
+ * Copy video data from input file descriptor state->input_fd to the
  * buffer cvf_stalker_state.buffer.
  *
  * @return ssize_t Number of bytes red.
  */
-static ssize_t fill_buffer(void);
+static ssize_t fill_buffer(cvf_talker_state_t* app_state);
 
-static int is_buffer_full(void);
+static int is_buffer_full(cvf_talker_state_t* app_state);
 
-static ssize_t search_eof(void);
+/**
+ * Returns index in cvf_talker_state_t::buffer pointing to last byte of current
+ * frame. Starts search from offset pointing to cvf_talker_state_t::buffer.
+ */
+static ssize_t search_eof(cvf_talker_state_t* app_state, size_t offset);
 
-static void transmit_fragment(void);
+static ssize_t search_eof_h264(cvf_talker_state_t* app_state, size_t offset);
+
+static void transmit_fragment(cvf_talker_state_t* app_state);
 
 /******************************************************************************
  * Implementations
  *****************************************************************************/
 
-static void init(int argc, char** argv)
+static void init(cvf_talker_state_t* app_state, int argc, char** argv)
 {
     // Set default arguments
-    memset(&cvf_talker_state, 0, sizeof(cvf_talker_state_t));
-    cvf_talker_state.priority = -1;
-    cvf_talker_state.max_transit_time_ns = DEFAULT_MAX_TRANSIT_TIME_NS;
-    cvf_talker_state.buffer_level = 0;
-    cvf_talker_state.seq_num = 0;
-    cvf_talker_state.fragment_num = 0;
-    cvf_talker_state.use_udp = 0;
-    cvf_talker_state.codec = AVTP_CVF_FORMAT_SUBTYPE_H264;
-    cvf_talker_state.stream_id = DEFAULT_STREAM_ID;
-    cvf_talker_state.input_fd = STDIN_FILENO;
+    memset(app_state, 0, sizeof(cvf_talker_state_t));
+    app_state->priority = -1;
+    app_state->max_transit_time_ns = DEFAULT_MAX_TRANSIT_TIME_NS;
+    app_state->buffer_level = 0;
+    app_state->seq_num = 0;
+    app_state->fragment_num = 0;
+    app_state->use_udp = 0;
+    app_state->codec = AVTP_CVF_FORMAT_SUBTYPE_H264;
+    app_state->stream_id = DEFAULT_STREAM_ID;
+    app_state->input_fd = STDIN_FILENO;
 
     // Parse arguments
     struct argp argp = { options, parse_arguments };
-    argp_parse(&argp, argc, argv, 0, NULL, NULL);
+    argp_parse(&argp, argc, argv, 0, NULL, app_state);
 
     // Check if all required arguments have been parsed
-    if (strcmp(cvf_talker_state.ifname, "") == 0) {
+    if (strcmp(app_state->ifname, "") == 0) {
         fprintf(stderr, "No ifname argument was provided (-i, --ifname)\n");
         exit(EXIT_FAILURE);
     }
 
     // Open socket
-    cvf_talker_state.socket_fd = create_talker_socket(cvf_talker_state.priority);
-    if (cvf_talker_state.socket_fd < 0) {
+    app_state->socket_fd = create_talker_socket(app_state->priority);
+    if (app_state->socket_fd < 0) {
         // fprintf(stderr, "Failed to open socket!\n");
         exit(EXIT_FAILURE);
     }
 
     // Set socket address
-    if (cvf_talker_state.use_udp) {
+    if (app_state->use_udp) {
         fprintf(stderr, "UDP not supported yet!\n");
         exit(EXIT_FAILURE);
     } else {
         int res = setup_socket_address(
-                cvf_talker_state.socket_fd,
-                cvf_talker_state.ifname,
-                cvf_talker_state.macaddr,
+                app_state->socket_fd,
+                app_state->ifname,
+                app_state->macaddr,
                 ETH_P_TSN,
-                &cvf_talker_state.socket_addr);
+                &app_state->socket_addr);
         if (res < 0) {
             fprintf(stderr, "Failed to set socket address!\n");
             exit(EXIT_FAILURE);
         }
     }
+
+    init_pdu(app_state);
 }
 
-static error_t parse_arguments(int key, char *arg, struct argp_state *state)
+static error_t parse_arguments(int key, char *arg, struct argp_state *argp_state)
 {
+    cvf_talker_state_t* app_state = argp_state->input;
+
     int res;
     switch (key) {
     case 'd':
         res = sscanf(arg,
                 "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                &cvf_talker_state.macaddr[0],
-                &cvf_talker_state.macaddr[1],
-                &cvf_talker_state.macaddr[2],
-                &cvf_talker_state.macaddr[3],
-                &cvf_talker_state.macaddr[4],
-                &cvf_talker_state.macaddr[5]);
+                &app_state->macaddr[0],
+                &app_state->macaddr[1],
+                &app_state->macaddr[2],
+                &app_state->macaddr[3],
+                &app_state->macaddr[4],
+                &app_state->macaddr[5]);
         if (res != 6) {
             fprintf(stderr, "Invalid address\n");
             exit(EXIT_FAILURE);
         }
         break;
     case 'i':
-        strncpy(cvf_talker_state.ifname, arg, sizeof(cvf_talker_state.ifname) - 1);
+        strncpy(app_state->ifname, arg, IFNAMSIZ);
         break;
     case 'm':
-        cvf_talker_state.max_transit_time_ns = atoi(arg);
+        app_state->max_transit_time_ns = atoi(arg);
         break;
     case 'p':
-        cvf_talker_state.priority = atoi(arg);
+        app_state->priority = atoi(arg);
         break;
     case 'u':
-        cvf_talker_state.use_udp = 1;
+        app_state->use_udp = 1;
         break;
-    case ARGUMENT_CODEC_SHORT:
+    case CMD_ARG_CODEC_SHORT:
         if (strcmp(arg, "h264") == 0) {
-            cvf_talker_state.codec = AVTP_CVF_FORMAT_SUBTYPE_H264;
+            app_state->codec = AVTP_CVF_FORMAT_SUBTYPE_H264;
         // } else if (strcmp(arg, "mjpeg") == 0) {
-        //     cvf_talker_state.codec = AVTP_CVF_FORMAT_SUBTYPE_MJPEG;
+        //     app_state->codec = AVTP_CVF_FORMAT_SUBTYPE_MJPEG;
         // } else if (strcmp(arg, "jpeg2000") == 0) {
-        //     cvf_talker_state.codec = AVTP_CVF_FORMAT_SUBTYPE_JPEG2000;
+        //     app_state->codec = AVTP_CVF_FORMAT_SUBTYPE_JPEG2000;
         } else {
             fprintf(stderr, "Codec not supported!\n");
             exit(EXIT_FAILURE);
@@ -263,19 +271,19 @@ static error_t parse_arguments(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
-static int init_pdu(void)
+static int init_pdu(cvf_talker_state_t* app_state)
 {
-    Avtp_Cvf_t* cvf = (Avtp_Cvf_t*)cvf_talker_state.buffer;
+    Avtp_Cvf_t* cvf = (Avtp_Cvf_t*)app_state->buffer;
 
     Avtp_Cvf_Init(cvf);
     Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_FORMAT_SUBTYPE, AVTP_CVF_FORMAT_SUBTYPE_H264);
     Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_FORMAT, AVTP_CVF_FORMAT_RFC);
     Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_TV, 1);
-    Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_STREAM_ID, cvf_talker_state.stream_id);
+    Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_STREAM_ID, app_state->stream_id);
     Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_M, 1);
     Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_PTV, 0);
 
-    switch (cvf_talker_state.codec) {
+    switch (app_state->codec) {
     case AVTP_CVF_FORMAT_SUBTYPE_H264:
         Avtp_H264_t* h264 = (Avtp_H264_t*)(&cvf->payload);
         Avtp_H264_Init(h264);
@@ -287,15 +295,15 @@ static int init_pdu(void)
         break;
     }
 
-    cvf_talker_state.buffer_level = (size_t)(payload_ptr() - cvf_talker_state.buffer);
+    app_state->buffer_level = header_size(app_state);
 
     return 0;
 }
 
-static uint8_t* payload_ptr(void)
+static size_t header_size(cvf_talker_state_t* app_state)
 {
-    uint8_t* result = cvf_talker_state.buffer + sizeof(Avtp_Cvf_t);
-    switch (cvf_talker_state.codec) {
+    size_t result = sizeof(Avtp_Cvf_t);
+    switch (app_state->codec) {
     case AVTP_CVF_FORMAT_SUBTYPE_H264:
         result += sizeof(Avtp_H264_t);
         break;
@@ -313,30 +321,77 @@ static uint8_t* payload_ptr(void)
     return result;
 }
 
-static ssize_t fill_buffer(void)
+static ssize_t fill_buffer(cvf_talker_state_t* app_state)
 {
-    // TODO
-    return 0;
+    ssize_t n;
+    n = read(app_state->input_fd,
+            app_state->buffer + app_state->buffer_level,
+            BUFFER_SIZE - app_state->buffer_level);
+    if (n < 0) {
+        fprintf(stderr, "Could not read from input file descriptor!\n");
+        exit(EXIT_FAILURE);
+    }
+    app_state->buffer_level += n;
+    return n;
 }
 
-static int is_buffer_full(void)
+static int is_buffer_full(cvf_talker_state_t* app_state)
 {
     // TODO
     return 1;
 }
 
-static ssize_t search_eof(void)
+static ssize_t search_eof(cvf_talker_state_t* app_state, size_t offset)
 {
-    // TODO
-    return 0;
+    if (app_state->codec == AVTP_CVF_FORMAT_SUBTYPE_H264) {
+        return search_eof_h264(app_state, offset);
+    } else {
+        fprintf(stderr, "Codec not supported!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return -1;
+}
+
+static ssize_t search_eof_h264(cvf_talker_state_t* app_state, size_t offset)
+{
+    offset += 3;
+    while (offset < app_state->buffer_level - 2) {
+        if (app_state->buffer[offset + 2] != 1) {
+            offset += 3;
+        } else if (app_state->buffer[offset + 2] == 1
+                && app_state->buffer[offset + 1] == 0
+                && app_state->buffer[offset] == 0) {
+            return offset - 1;
+        } else {
+            offset++;
+        }
+    }
+    return -1;
 }
 
 int main(int argc, char** argv)
 {
-    init(argc, argv);
+    cvf_talker_state_t app_state;
+    init(&app_state, argc, argv);
+
     while (1) {
-        fill_buffer();
-        if (is_buffer_full() || )
+        fill_buffer(&app_state);
+        ssize_t sof = header_size(&app_state);
+        ssize_t eof = search_eof(&app_state, sof);
+        while (eof != -1 && eof < BUFFER_SIZE - 1) {
+            sof = eof + 1;
+            eof = search_eof(&app_state, eof);
+        }
+        if (eof == -1) {
+            fprintf(stderr, "Not enough buffer space to store !\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        // printf("%ld\n", app_state.buffer_level);
+        // usleep(10000);
+    //     if (is_buffer_full() || )
     }
+
     return EXIT_SUCCESS;
 }
