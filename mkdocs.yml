@@ -7,3 +7,6 @@ nav:
     - 'Getting Started (Linux)': 'user-guide/getting-started.md'
   - 'Developers Guide':
     - 'Contributing': 'dev-guide/contributing.md'
+    - 'Coding Styleguide': 'dev-guide/styleguide.md'
+    - 'Implementing a talker app': 'dev-guide/talker.md'
+    - 'Implementing a listener app': 'dev-guide/listener.md'
