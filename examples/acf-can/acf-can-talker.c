@@ -221,9 +221,9 @@ static int prepare_acf_packet(uint8_t* acf_pdu,
     Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_EFF, can_id & CAN_EFF_FLAG);
 
     if (can_variant == AVTP_CAN_FD) {
-        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_BRS, frame.fd.flags & CANFD_BRS);
-        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_FDF, frame.fd.flags & CANFD_FDF);
-        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_ESI, frame.fd.flags & CANFD_ESI);
+        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_BRS, (frame.fd.flags & CANFD_BRS));
+        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_FDF, (frame.fd.flags & CANFD_FDF)>>2);
+        Avtp_Can_SetField(pdu, AVTP_CAN_FIELD_ESI, (frame.fd.flags & CANFD_ESI)>>1);
     }
 
     // Copy payload to ACF CAN PDU
