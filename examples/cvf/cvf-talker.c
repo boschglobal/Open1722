@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
     if (res < 0)
         goto err;
 
+    int i = 0;
     while (1) {
         ssize_t n;
         bool end = false;
@@ -294,11 +295,23 @@ int main(int argc, char *argv[])
             if (pr == PROCESS_NONE)
                 break;
 
+            printf("Send frame #%d len=%ld\n", i++, n);
+            if (i <= 5) {
+                for (int x = 0; x < n; x++) {
+                    printf("%02hhX ", pdu[AVTP_FULL_HEADER_LEN + x]);
+                }
+                printf("\n");
+            }
+
             n = sendto(fd, pdu, AVTP_FULL_HEADER_LEN + n, 0,
                 (struct sockaddr *) &sk_addr, sizeof(sk_addr));
             if (n < 0) {
                 perror("Failed to send data");
                 goto err;
+            }
+
+            if (i == 5) {
+                // goto err;
             }
         }
 
