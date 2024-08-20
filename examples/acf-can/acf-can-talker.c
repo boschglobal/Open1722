@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <time.h>
+#include <poll.h>
 
 #include "common/common.h"
 #include "avtp/Udp.h"
@@ -52,6 +53,7 @@
 #define STREAM_ID                   0xAABBCCDDEEFF0001
 #define CAN_PAYLOAD_MAX_SIZE        16*4
 #define ARGPARSE_CAN_FD_OPTION      500
+#define MAX_CAN_IFS                 10
 
 static char ifname[IFNAMSIZ];
 static uint8_t macaddr[ETH_ALEN];
@@ -64,7 +66,8 @@ static uint8_t use_tscf;
 static uint8_t use_udp;
 static Avtp_CanVariant_t can_variant = AVTP_CAN_CLASSIC;
 static uint8_t num_acf_msgs = 1;
-static char can_ifname[IFNAMSIZ];
+static char can_ifname[MAX_CAN_IFS][IFNAMSIZ];
+static uint8_t num_can_ifs = 0;
 
 static char doc[] = "\nacf-can-talker -- a program designed to send CAN messages to \
                     a remote CAN bus over Ethernet using Open1722 \
@@ -149,10 +152,12 @@ static error_t parser(int key, char *arg, struct argp_state *state)
             }
         }
 
-        if(state->next < state->argc)
+        while ((state->next < state->argc) && (num_can_ifs < MAX_CAN_IFS))
         {
-            strncpy(can_ifname, state->argv[state->next], sizeof(can_ifname) - 1);
-            state->next = state->argc;
+            strncpy(can_ifname[num_can_ifs], state->argv[state->next],
+                    sizeof(can_ifname[num_can_ifs]) - 1);
+            num_can_ifs++;
+            state->next += 1;
         }
 
         break;
@@ -240,12 +245,13 @@ static int prepare_acf_packet(uint8_t* acf_pdu,
 int main(int argc, char *argv[])
 {
 
-    int fd, res, can_socket=0;
+    int fd, res;
     struct sockaddr_ll sk_ll_addr;
     struct sockaddr_in sk_udp_addr;
     uint8_t pdu[MAX_PDU_SIZE];
     uint16_t pdu_length, cf_length;
     frame_t can_frame;
+    struct pollfd fds[MAX_CAN_IFS];
 
     argp_parse(&argp, argc, argv, 0, NULL, NULL);
 
@@ -266,8 +272,13 @@ int main(int argc, char *argv[])
     if (res < 0) goto err;
 
     // Open a CAN socket for reading frames
-    can_socket = setup_can_socket(can_ifname, can_variant);
-    if (!can_socket) goto err;
+    for (int i = 0; i < num_can_ifs; i ++) {
+        int socket;
+        socket = setup_can_socket(can_ifname[i], can_variant);
+        if (!socket) goto err;
+        fds[i].fd = socket;
+        fds[i].events = POLLIN;
+    }
 
     // Sending loop
     for(;;) {
@@ -296,19 +307,29 @@ int main(int argc, char *argv[])
         while (i < num_acf_msgs) {
             // Get payload -- will 'spin' here until we get the requested number
             //                of CAN frames.
-            if(can_variant == AVTP_CAN_FD){
-                res = read(can_socket, &can_frame.fd, sizeof(struct canfd_frame));
-            } else {
-                res = read(can_socket, &can_frame.cc, sizeof(struct can_frame));
+            // printf("No. of CAN interfaces: %d\n", num_can_ifs);
+            res = poll(fds, num_can_ifs, -1);
+            if (res < 0) {
+                perror("Failed to poll() fds");
+                goto err;
             }
-            if (!res) continue;
+            for (int can_idx = 0; can_idx < num_can_ifs; can_idx++) {
+                if (fds[can_idx].revents & POLLIN) {
+                    if(can_variant == AVTP_CAN_FD){
+                        res = read(fds[can_idx].fd, &can_frame.fd, sizeof(struct canfd_frame));
+                    } else {
+                        res = read(fds[can_idx].fd, &can_frame.cc, sizeof(struct can_frame));
+                    }
+                }
+                if (!res) continue;
 
-            uint8_t* acf_pdu = pdu + pdu_length;
-            res = prepare_acf_packet(acf_pdu, can_frame);
-            if (res < 0) goto err;
-            pdu_length += res;
-            cf_length += res;
-            i++;
+                uint8_t* acf_pdu = pdu + pdu_length;
+                res = prepare_acf_packet(acf_pdu, can_frame);
+                if (res < 0) goto err;
+                pdu_length += res;
+                cf_length += res;
+                i++;
+            }
         }
 
         res = update_cf_length(cf_pdu, cf_length);
