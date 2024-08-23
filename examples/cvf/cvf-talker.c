@@ -296,12 +296,9 @@ int main(int argc, char *argv[])
                 break;
 
             printf("Send frame #%d len=%ld\n", i++, n);
-            if (i <= 5) {
-                for (int x = 0; x < n; x++) {
-                    printf("%02hhX ", pdu[AVTP_FULL_HEADER_LEN + x]);
-                }
-                printf("\n");
-            }
+            // if (i > 996 && i <= 1000) {
+            //     dump_mem(pdu + AVTP_FULL_HEADER_LEN, n);
+            // }
 
             n = sendto(fd, pdu, AVTP_FULL_HEADER_LEN + n, 0,
                 (struct sockaddr *) &sk_addr, sizeof(sk_addr));
@@ -310,8 +307,8 @@ int main(int argc, char *argv[])
                 goto err;
             }
 
-            if (i == 5) {
-                // goto err;
+            if (i == 10) {
+                goto err;
             }
         }
 

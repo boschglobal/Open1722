@@ -18,6 +18,10 @@ $ cvf-listener <args> | gst-launch-1.0 filesrc location=/dev/stdin \
   ! decodebin ! videoconvert ! autovideosink
 ```
 
+<!--
+cvf-listener <args> | gst-launch-1.0 filesrc location=/dev/stdin ! decodebin ! videoconvert ! autovideosink
+-->
+
 <!-- ```
 gst-launch-1.0 -e -q videotestsrc pattern=ball \
   ! video/x-raw,width=192,height=144 \
@@ -42,4 +46,5 @@ $ gst-launch-1.0 -e -q videotestsrc pattern=ball \
   ! video/x-h264,stream-format=byte-stream ! filesink location=/dev/stdout \
   | cvf-talker <args>
 ```
+
 Note that the `x264enc` may be changed by any other H.264 encoder available, as long as it generates a byte-stream with NAL units no longer than 1400 bytes.

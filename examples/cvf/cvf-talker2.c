@@ -177,11 +177,11 @@ static ssize_t search_sof_h264(cvf_talker_state_t* app_state, size_t offset);
 
 // static void transmit_fragment(cvf_talker_state_t* app_state);
 
+void prepare_pdu(cvf_talker_state_t* app_state, size_t eof);
+
 void transmit_pdu(cvf_talker_state_t* app_state, size_t eof);
 
 void shift_buffer(cvf_talker_state_t* app_state, size_t eof);
-
-void print_buffer(cvf_talker_state_t* app_state, size_t eof);
 
 /******************************************************************************
  * Implementations
@@ -397,9 +397,9 @@ static ssize_t search_sof_h264(cvf_talker_state_t* app_state, size_t offset)
     return -1;
 }
 
-void transmit_pdu(cvf_talker_state_t* app_state, size_t eof)
+void prepare_pdu(cvf_talker_state_t* app_state, size_t eof)
 {
-    int rc;
+    int rc = 0;
 
     Avtp_Cvf_t* cvf;
     if (app_state->use_udp) {
@@ -427,7 +427,11 @@ void transmit_pdu(cvf_talker_state_t* app_state, size_t eof)
     } else {
         Avtp_Cvf_SetField(cvf, AVTP_CVF_FIELD_TV, 0);
     }
+}
 
+void transmit_pdu(cvf_talker_state_t* app_state, size_t eof)
+{
+    int rc = 0;
     if (app_state->use_udp) {
         rc = sendto(
                 app_state->socket_fd,
@@ -462,14 +466,6 @@ void shift_buffer(cvf_talker_state_t* app_state, size_t eof)
     app_state->buffer_level = app_state->buffer_level - eof + hsize;
 }
 
-void print_buffer(cvf_talker_state_t* app_state, size_t eof)
-{
-    for (size_t i = header_size(app_state); i < eof; i++) {
-        printf("%02hhX ", app_state->buffer[i]);
-    }
-    printf("\n");
-}
-
 int main(int argc, char** argv)
 {
     cvf_talker_state_t app_state;
@@ -498,18 +494,17 @@ int main(int argc, char** argv)
         if (eof >= 0) {
             // printf("Pre buffer level %ld\n", app_state.buffer_level);
             printf("Send frame #%d numNal=%d eof=%ld payloadLen=%ld\n", i++, num_nal, eof, eof-hsize);
-            if (i <= 5) {
-                // print_buffer(&app_state, eof);
-            }
+            // if (i > 996 && i <= 1000) {
+            //     dump_mem(app_state.buffer + header_size(&app_state), eof-hsize);
+            // }
+            prepare_pdu(&app_state, eof);
             transmit_pdu(&app_state, eof);
             shift_buffer(&app_state, eof);
             // printf("Post buffer level %ld\n", app_state.buffer_level);
         }
-        if (i == 5) {
-            // break;
+        if (i == 10) {
+            break;
         }
-
-        i++;
         
         // while (eof != -1 && eof < BUFFER_SIZE - 1) {
         //     // TODO send fragment

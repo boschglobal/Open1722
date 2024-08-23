@@ -285,3 +285,11 @@ int present_data(uint8_t *data, size_t len)
 
     return 0;
 }
+
+void dump_mem(const uint8_t* data, size_t len)
+{
+    for (size_t i = 0; i < len; ++i) {
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
+}

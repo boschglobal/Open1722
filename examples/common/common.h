@@ -138,3 +138,8 @@ int present_data(uint8_t *data, size_t len);
  *    -1: Could not arm timer.
  */
 int arm_timer(int fd, struct timespec *tspec);
+
+/**
+ * Print some binary data. Mainly for debugging.
+ */
+void dump_mem(const uint8_t* data, size_t len);
