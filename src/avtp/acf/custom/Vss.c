@@ -108,11 +108,11 @@ uint8_t Avtp_Vss_GetMtv(Avtp_Vss_t* pdu) {
     return GET_FIELD(AVTP_VSS_FIELD_MTV);
 }
 
-Vss_Addr_Mode_t Avtp_Vss_GetAddrMode(Avtp_Vss_t* pdu) {
+Vss_AddrMode_t Avtp_Vss_GetAddrMode(Avtp_Vss_t* pdu) {
     return GET_FIELD(AVTP_VSS_FIELD_ADDR_MODE);
 }
 
-Vss_Op_Code_t Avtp_Vss_GetOpCode(Avtp_Vss_t* pdu) {
+Vss_OpCode_t Avtp_Vss_GetOpCode(Avtp_Vss_t* pdu) {
     return GET_FIELD(AVTP_VSS_FIELD_VSS_OP);
 }
 
@@ -129,7 +129,7 @@ void Avtp_Vss_GetVssPath(Avtp_Vss_t* pdu, VssPath_t* val) {
     uint8_t* vss_path_ptr = (uint8_t*) pdu + AVTP_VSS_FIXED_HEADER_LEN;
 
     // Check the used VSS addressing mode
-    Vss_Addr_Mode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
+    Vss_AddrMode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
 
     if (addr_mode == VSS_STATIC_ID_MODE) {
         val->vss_static_id_path = Avtp_BeToCpu32(*(uint32_t*)vss_path_ptr);
@@ -144,7 +144,7 @@ uint16_t Avtp_Vss_CalcVssPathLength (Avtp_Vss_t* pdu) {
     uint8_t* vss_path_ptr = (uint8_t*) pdu + AVTP_VSS_FIXED_HEADER_LEN;
 
     // Check the used VSS addressing mode
-    Vss_Addr_Mode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
+    Vss_AddrMode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
     uint16_t path_length = 0;
 
     if (addr_mode == VSS_STATIC_ID_MODE) {
@@ -204,27 +204,27 @@ void Avtp_Vss_GetVssData(Avtp_Vss_t* pdu, VssData_t* val) {
             break;
 
         case VSS_UINT16:
-            val->data_uint16 = *(int16_t*) vss_data_ptr;
+            val->data_uint16 = Avtp_BeToCpu16(*(uint16_t*) vss_data_ptr);
             break;
 
         case VSS_INT16:
-            val->data_int16 = *(int16_t*) vss_data_ptr;
+            val->data_int16 =  (int16_t) Avtp_BeToCpu16(*(uint16_t*) vss_data_ptr);
             break;
 
         case VSS_UINT32:
-            val->data_uint32 = *(uint32_t*) vss_data_ptr;
+            val->data_uint32 = Avtp_BeToCpu32(*(uint32_t*) vss_data_ptr);
             break;
 
         case VSS_INT32:
-            val->data_int32 = *(int32_t*) vss_data_ptr;
+            val->data_int32 = (int32_t) Avtp_BeToCpu32(*(uint32_t*) vss_data_ptr);
             break;
 
         case VSS_UINT64:
-            val->data_uint64 = *(uint64_t*) vss_data_ptr;
+            val->data_uint64 = Avtp_BeToCpu64(*(uint64_t*) vss_data_ptr);
             break;
 
         case VSS_INT64:
-            val->data_int64 = *(int64_t*) vss_data_ptr;
+            val->data_int64 = (int64_t) Avtp_BeToCpu32(*(uint64_t*) vss_data_ptr);
             break;
 
         case VSS_BOOL:
@@ -232,71 +232,88 @@ void Avtp_Vss_GetVssData(Avtp_Vss_t* pdu, VssData_t* val) {
             break;
 
         case VSS_FLOAT:
-            val->data_float = *(float*) vss_data_ptr;
+            uint32_t temp =  Avtp_BeToCpu32(*(uint32_t*) vss_data_ptr);
+            memcpy(&(val->data_float), &temp, sizeof(float));
             break;
 
         case VSS_DOUBLE:
-            val->data_double = *(double*) vss_data_ptr;
+            val->data_double = (double) Avtp_BeToCpu32(*(uint64_t*) vss_data_ptr);
             break;
 
         case VSS_STRING:
             val->data_string->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_string->data = vss_data_ptr+2;
+            memcpy(val->data_string->data, vss_data_ptr+2, val->data_string->data_length);
             break;
 
         case VSS_UINT8_ARRAY:
             val->data_uint8_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_uint8_array->data = vss_data_ptr+2;
+            memcpy(val->data_string->data, vss_data_ptr+2, val->data_uint8_array->data_length);
             break;
 
         case VSS_INT8_ARRAY:
             val->data_int8_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_int8_array->data = (int8_t*) vss_data_ptr+2;
+            memcpy(val->data_string->data, vss_data_ptr+2, val->data_int8_array->data_length);
             break;
 
         case VSS_UINT16_ARRAY:
             val->data_uint16_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_uint16_array->data = (uint16_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_uint16_array->data_length/2; i++) {
+                *(val->data_uint16_array->data + i) = Avtp_CpuToBe16(*((uint16_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_INT16_ARRAY:
             val->data_int16_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_int16_array->data = (int16_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_int16_array->data_length/2; i++) {
+                *(val->data_int16_array->data + i) = (int16_t) Avtp_CpuToBe16(*((uint16_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_UINT32_ARRAY:
             val->data_uint32_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_uint32_array->data = (uint32_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_uint32_array->data_length/4; i++) {
+                *(val->data_uint32_array->data + i) = Avtp_CpuToBe32(*((uint32_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_INT32_ARRAY:
             val->data_int32_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_int32_array->data = (int32_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_int32_array->data_length/8; i++) {
+                *(val->data_int32_array->data + i) = (int32_t) Avtp_CpuToBe32(*((uint32_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_UINT64_ARRAY:
             val->data_uint64_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_uint64_array->data = (uint64_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_uint64_array->data_length/8; i++) {
+                *(val->data_uint64_array->data + i) = Avtp_CpuToBe64(*((uint64_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_INT64_ARRAY:
             val->data_int64_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_int64_array->data = (int64_t*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_int64_array->data_length/4; i++) {
+                *(val->data_int64_array->data + i) = (int64_t) Avtp_CpuToBe64(*((uint64_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_BOOL_ARRAY:
             val->data_bool_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_bool_array->data = vss_data_ptr+2;
+            memcpy(val->data_bool_array->data, vss_data_ptr+2, val->data_bool_array->data_length);
             break;
 
         case VSS_FLOAT_ARRAY:
             val->data_float_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_float_array->data = (float*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_float_array->data_length/4; i++) {
+                *(val->data_float_array->data + i) = (float) Avtp_CpuToBe32(*((uint32_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_DOUBLE_ARRAY:
             val->data_double_array->data_length = Avtp_BeToCpu16(*(uint16_t*)vss_data_ptr);
-            val->data_double_array->data = (double*) (vss_data_ptr+2);
+            for (int i = 0; i < val->data_double_array->data_length/8; i++) {
+                *(val->data_double_array->data + i) = (double) Avtp_CpuToBe64(*((uint64_t*)vss_data_ptr+i));
+            }
             break;
 
         case VSS_STRING_ARRAY:
@@ -327,11 +344,11 @@ void Avtp_Vss_SetMtv(Avtp_Vss_t* pdu, uint8_t val) {
     SET_FIELD(AVTP_VSS_FIELD_MTV, val);
 }
 
-void Avtp_Vss_SetAddrMode(Avtp_Vss_t* pdu, Vss_Addr_Mode_t val) {
+void Avtp_Vss_SetAddrMode(Avtp_Vss_t* pdu, Vss_AddrMode_t val) {
     SET_FIELD(AVTP_VSS_FIELD_ADDR_MODE, val);
 }
 
-void Avtp_Vss_SetOpCode(Avtp_Vss_t* pdu, Vss_Op_Code_t val) {
+void Avtp_Vss_SetOpCode(Avtp_Vss_t* pdu, Vss_OpCode_t val) {
     SET_FIELD(AVTP_VSS_FIELD_VSS_OP, val);
 }
 
@@ -348,7 +365,7 @@ void Avtp_Vss_SetVssPath(Avtp_Vss_t* pdu, VssPath_t* val)
     uint8_t* vss_path_ptr = (uint8_t*) pdu + AVTP_VSS_FIXED_HEADER_LEN;
 
     // Check the used VSS addressing mode
-    Vss_Addr_Mode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
+    Vss_AddrMode_t addr_mode = Avtp_Vss_GetAddrMode(pdu);
 
     if (addr_mode == VSS_STATIC_ID_MODE) {
         uint32_t* static_id = (uint32_t*) vss_path_ptr;
@@ -378,27 +395,27 @@ void Avtp_Vss_SetVssData(Avtp_Vss_t* pdu, VssData_t* val) {
             break;
 
         case VSS_UINT16:
-            *(uint16_t*) vss_data_ptr = val->data_uint16;
+            *(uint16_t*) vss_data_ptr = Avtp_CpuToBe16(val->data_uint16);
             break;
 
         case VSS_INT16:
-            *(int16_t*) vss_data_ptr = val->data_int16;
+            *(int16_t*) vss_data_ptr = (int16_t)Avtp_CpuToBe16((uint16_t)val->data_int16);
             break;
 
         case VSS_UINT32:
-            *(uint32_t*) vss_data_ptr = val->data_uint32;
+            *(uint32_t*) vss_data_ptr = Avtp_CpuToBe32(val->data_uint32);
             break;
 
         case VSS_INT32:
-            *(int32_t*) vss_data_ptr = val->data_int32;
+            *(int32_t*) vss_data_ptr = (int32_t)Avtp_CpuToBe32((uint32_t)val->data_int32);
             break;
 
         case VSS_UINT64:
-            *(uint64_t*) vss_data_ptr = val->data_uint64;
+            *(uint64_t*) vss_data_ptr = Avtp_CpuToBe64(val->data_uint64);
             break;
 
         case VSS_INT64:
-            *(int64_t*) vss_data_ptr = val->data_int64;
+            *(int64_t*) vss_data_ptr = (int64_t)Avtp_CpuToBe64((uint64_t)val->data_int64);
             break;
 
         case VSS_BOOL:
@@ -406,11 +423,12 @@ void Avtp_Vss_SetVssData(Avtp_Vss_t* pdu, VssData_t* val) {
             break;
 
         case VSS_FLOAT:
-            *(float*) vss_data_ptr = val->data_float;
+            uint32_t temp = Avtp_CpuToBe32(*(uint32_t*)&(val->data_float));
+            memcpy(vss_data_ptr, &temp, sizeof(float));
             break;
 
         case VSS_DOUBLE:
-            *(double*) vss_data_ptr = val->data_double;
+            *(double*) vss_data_ptr = (double)Avtp_CpuToBe64((uint64_t)val->data_double);
             break;
 
         case VSS_STRING:

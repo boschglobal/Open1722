@@ -51,12 +51,12 @@ typedef struct {
 typedef enum vss_op_code {
     PUBLISH_CURRENT_VALUE   = 0,
     PUBLISH_TARGET_VALUE    = 1
-} Vss_Op_Code_t;
+} Vss_OpCode_t;
 
 typedef enum vss_addr_mode {
     VSS_INTEROP_MODE    = 0,
     VSS_STATIC_ID_MODE  = 1
-} Vss_Addr_Mode_t;
+} Vss_AddrMode_t;
 
 typedef enum vss_datatype {
     VSS_UINT8 = 0,
@@ -248,8 +248,8 @@ Avtp_AcfMsgType_t Avtp_Vss_GetAcfMsgType(Avtp_Vss_t* pdu);
 uint8_t Avtp_Vss_GetAcfMsgLength(Avtp_Vss_t* pdu);
 uint8_t Avtp_Vss_GetPad(Avtp_Vss_t* pdu);
 uint8_t Avtp_Vss_GetMtv(Avtp_Vss_t* pdu);
-Vss_Addr_Mode_t Avtp_Vss_GetAddrMode(Avtp_Vss_t* pdu);
-Vss_Op_Code_t Avtp_Vss_GetOpCode(Avtp_Vss_t* pdu);
+Vss_AddrMode_t Avtp_Vss_GetAddrMode(Avtp_Vss_t* pdu);
+Vss_OpCode_t Avtp_Vss_GetOpCode(Avtp_Vss_t* pdu);
 Vss_Datatype_t Avtp_Vss_GetDatatype(Avtp_Vss_t* pdu);
 uint64_t Avtp_Vss_GetMsgTimestamp(Avtp_Vss_t* pdu);
 void Avtp_Vss_GetVssPath(Avtp_Vss_t* pdu, VssPath_t* val);
@@ -263,8 +263,8 @@ void Avtp_Vss_SetAcfMsgType(Avtp_Vss_t* pdu, Avtp_AcfMsgType_t val);
 void Avtp_Vss_SetAcfMsgLength(Avtp_Vss_t* pdu, uint8_t val);
 void Avtp_Vss_SetPad(Avtp_Vss_t* pdu, uint8_t val);
 void Avtp_Vss_SetMtv(Avtp_Vss_t* pdu, uint8_t val);
-void Avtp_Vss_SetAddrMode(Avtp_Vss_t* pdu, Vss_Addr_Mode_t val);
-void Avtp_Vss_SetOpCode(Avtp_Vss_t* pdu, Vss_Op_Code_t val);
+void Avtp_Vss_SetAddrMode(Avtp_Vss_t* pdu, Vss_AddrMode_t val);
+void Avtp_Vss_SetOpCode(Avtp_Vss_t* pdu, Vss_OpCode_t val);
 void Avtp_Vss_SetDatatype(Avtp_Vss_t* pdu, Vss_Datatype_t val);
 void Avtp_Vss_SetMsgTimestamp(Avtp_Vss_t* pdu, uint64_t val);
 void Avtp_Vss_SetVssPath(Avtp_Vss_t* pdu, VssPath_t* val);
