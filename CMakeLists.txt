@@ -94,6 +94,11 @@ add_executable(hello-world-listener "examples/hello-world/hello-world-listener.c
 target_include_directories(hello-world-listener PRIVATE "examples" "include")
 target_link_libraries(hello-world-listener open1722 open1722examples)
 
+# CVF talker app
+add_executable(acf-vss-talker "examples/acf-vss/acf-vss-talker.c")
+target_include_directories(acf-vss-talker PRIVATE "examples" "include")
+target_link_libraries(acf-vss-talker open1722 open1722examples)
+
 #### Tests ####################################################################
 
 enable_testing()

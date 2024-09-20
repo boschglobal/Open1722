@@ -38,15 +38,52 @@
 #include <stdint.h>
 
 #include "avtp/Defines.h"
-#include "avtp/acf/Common.h"
+#include "avtp/acf/AcfCommon.h"
 
-#define AVTP_VSS_HEADER_LEN         (3 * AVTP_QUADLET_SIZE)
+#define AVTP_VSS_FIXED_HEADER_LEN         (3 * AVTP_QUADLET_SIZE)
 #define AVTP_ACF_TYPE_VSS           0x42
 
 typedef struct {
-    uint8_t header[AVTP_VSS_HEADER_LEN];
+    uint8_t header[AVTP_VSS_FIXED_HEADER_LEN];
     uint8_t payload[0];
 } Avtp_Vss_t;
+
+typedef enum vss_op_code {
+    PUBLISH_CURRENT_VALUE   = 0,
+    PUBLISH_TARGET_VALUE    = 1
+} Vss_Op_Code_t;
+
+typedef enum vss_addr_mode {
+    VSS_INTEROP_MODE    = 0,
+    VSS_STATIC_ID_MODE  = 1
+} Vss_Addr_Mode_t;
+
+typedef enum vss_datatype {
+    VSS_UINT8 = 0,
+    VSS_INT8 = 0x1,
+    VSS_UINT16 = 0x2,
+    VSS_INT16 = 0x3,
+    VSS_UINT32 = 0x4,
+    VSS_INT32 = 0x5,
+    VSS_UINT64 = 0x6,
+    VSS_INT64 = 0x7,
+    VSS_BOOL = 0x8,
+    VSS_FLOAT = 0x9,
+    VSS_DOUBLE = 0xA,
+    VSS_STRING = 0xB,
+    VSS_UINT8_ARRAY = 0x80,
+    VSS_INT8_ARRAY = 0x81,
+    VSS_UINT16_ARRAY = 0x82,
+    VSS_INT16_ARRAY = 0x83,
+    VSS_UINT32_ARRAY = 0x84,
+    VSS_INT32_ARRAY = 0x85,
+    VSS_UINT64_ARRAY = 0x86,
+    VSS_INT64_ARRAY = 0x87,
+    VSS_BOOL_ARRAY = 0x88,
+    VSS_FLOAT_ARRAY = 0x89,
+    VSS_DOUBLE_ARRAY = 0x8A,
+    VSS_STRING_ARRAY = 0x8B,
+} Vss_Datatype_t;
 
 typedef enum  {
 
@@ -66,68 +103,172 @@ typedef enum  {
     AVTP_VSS_FIELD_MAX
 } Avtp_VssFields_t;
 
+typedef struct vss_interop_path {
+    uint16_t path_length;
+    char *path;
+} VssInteropPath_t;    // Used for VSS Path in Interop Mode
+
+typedef union vss_path {
+    VssInteropPath_t vss_interop_path;
+    uint32_t vss_static_id_path;
+} VssPath_t;
+
+typedef struct vss_data_string {
+    uint16_t data_length;
+    char* data;
+} VssDataString_t;
+
+typedef struct  vss_data_uint8_array {
+    uint16_t data_length;
+    uint8_t* data;
+} VssDataUint8Array_t;
+
+typedef struct  vss_data_int8_array {
+    uint16_t data_length;
+    int8_t* data;
+} VssDataInt8Array_t;
+
+typedef struct  vss_data_uint16_array {
+    uint16_t data_length;
+    uint16_t* data;
+} VssDataUint16Array_t;
+
+typedef struct  vss_data_int16_array {
+    uint16_t data_length;
+    int16_t* data;
+} VssDataInt16Array_t;
+
+typedef struct  vss_data_uint32_array {
+    uint16_t data_length;
+    uint32_t* data;
+} VssDataUint32Array_t;
+
+typedef struct  vss_data_int32_array {
+    uint16_t data_length;
+    int32_t* data;
+} VssDataInt32Array_t;
+
+typedef struct  vss_data_uint64_array {
+    uint16_t data_length;
+    uint64_t* data;
+} VssDataUint64Array_t;
+
+typedef struct  vss_data_int64_array {
+    uint16_t data_length;
+    int64_t* data;
+} VssDataInt64Array_t;
+
+typedef struct  vss_data_bool_array {
+    uint16_t data_length;
+    uint8_t* data;
+} VssDataBoolArray_t;
+
+typedef struct  vss_data_float_array {
+    uint16_t data_length;
+    float* data;
+} VssDataFloatArray_t;
+
+typedef struct  vss_data_double_array {
+    uint16_t data_length;
+    double* data;
+} VssDataDoubleArray_t;
+
+typedef struct  vss_data_string_array {
+    uint16_t data_length;
+    uint8_t* data;
+} VssDataStringArray_t;
+
+typedef union vss_data {
+    uint8_t data_uint8;
+    int8_t data_int8;
+    uint16_t data_uint16;
+    int16_t data_int16;
+    uint32_t data_uint32;
+    int32_t data_int32;
+    uint64_t data_uint64;
+    int64_t data_int64;
+    uint8_t data_bool;
+    float data_float;
+    double data_double;
+    VssDataString_t* data_string;
+    VssDataUint8Array_t* data_uint8_array;
+    VssDataInt8Array_t* data_int8_array;
+    VssDataUint16Array_t* data_uint16_array;
+    VssDataInt16Array_t* data_int16_array;
+    VssDataUint32Array_t* data_uint32_array;
+    VssDataInt32Array_t* data_int32_array;
+    VssDataUint64Array_t* data_uint64_array;
+    VssDataInt64Array_t* data_int64_array;
+    VssDataBoolArray_t* data_bool_array;
+    VssDataFloatArray_t* data_float_array;
+    VssDataDoubleArray_t* data_double_array;
+    VssDataStringArray_t* data_string_array;
+} VssData_t;
+
 /**
  * Initializes an ACF VSS PDU header as specified in the VSS - IEEE 1722
  * Mapping Specification.
  *
  * @param vss_pdu Pointer to the first bit of a 1722 ACF VSS PDU.
  */
-int Avtp_Vss_Init(Avtp_Vss_t* vss_pdu);
+void Avtp_Vss_Init(Avtp_Vss_t* vss_pdu);
 
 /**
  * Returns the value of an an ACF VSS PDU field as specified in the
  * VSS - IEEE 1722 Mapping Specification.
  *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
+ * @param pdu Pointer to the first bit of an 1722 ACF VSS PDU.
  * @param field Specifies the position of the data field to be read
- * @param value Pointer to location to store the value.
- * @returns This function returns 0 if the data field was successfully read from
- * the 1722 ACF VSS PDU.
+ * @returns Value of the specified field of the ACF VSS PDU
  */
-int Avtp_Vss_GetField(Avtp_Vss_t* vss_pdu, Avtp_VssFields_t field, uint64_t* value);
+uint64_t Avtp_Vss_GetField(Avtp_Vss_t* pdu, Avtp_VssFields_t field);
 
 /**
  * Sets the value of an an ACF VSS PDU field as specified in the
  * VSS - IEEE 1722 Mapping Specification.
  *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
+ * @param pdu Pointer to the first bit of an 1722 ACF VSS PDU.
  * @param field Specifies the position of the data field to be read
- * @param value Pointer to location to store the value.
- * @returns This function returns 0 if the data field was successfully set in
- * the 1722 ACF VSS PDU.
+ * @param value Value of the specified field
  */
-int Avtp_Vss_SetField(Avtp_Vss_t* vss_pdu, Avtp_VssFields_t field, uint64_t value);
+void Avtp_Vss_SetField(Avtp_Vss_t* pdu, Avtp_VssFields_t field, uint64_t value);
 
-/**
- * Copies the payload data into the ACF VSS frame. This function will also set the
- * length and pad fields while inserting the padded bytes.
- *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param frame_id ID of the VSS frame
- * @param payload Pointer to the payload byte array
- * @param payload_length Length of the payload.
- * @returns Returns number of processed bytes (header + payload + padding)
- */
-int Avtp_Vss_SetPayload(Avtp_Vss_t* vss_pdu, uint32_t frame_id , uint8_t* payload,
-                        uint16_t payload_length);
-
-/**
- * Returns pointer to payload of an ACF VSS frame.
- *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param payload_length payload length set by the function (if not NULL)
- * @param pdu_length total pdu length set by the function (if not NULL)
- * @return Pointer to ACF VSS frame payload
- */
-uint8_t* Avtp_Vss_GetPayload(Avtp_Vss_t* vss_pdu, uint16_t* payload_length, uint16_t *pdu_length);
 
 /**
  * Finalizes the ACF VSS frame. This function will set the
  * length and pad fields while inserting the padded bytes.
  *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param payload Pointer to the payload byte array
- * @param payload_length Length of the payload.
- * @returns Returns number of processed bytes (header + payload + padding)
+ * @param pdu Pointer to the first bit of an 1722 ACF VSS PDU.
+ * @param vss_length Length of the VSS frame including the header bytes.
  */
-int Avtp_Vss_Finalize(Avtp_Vss_t* vss_pdu, uint16_t payload_length);
+void Avtp_Vss_Pad(uint8_t* pdu, uint16_t vss_length);
+
+/* Getter and Setter Functions*/
+Avtp_AcfMsgType_t Avtp_Vss_GetAcfMsgType(Avtp_Vss_t* pdu);
+uint8_t Avtp_Vss_GetAcfMsgLength(Avtp_Vss_t* pdu);
+uint8_t Avtp_Vss_GetPad(Avtp_Vss_t* pdu);
+uint8_t Avtp_Vss_GetMtv(Avtp_Vss_t* pdu);
+Vss_Addr_Mode_t Avtp_Vss_GetAddrMode(Avtp_Vss_t* pdu);
+Vss_Op_Code_t Avtp_Vss_GetOpCode(Avtp_Vss_t* pdu);
+Vss_Datatype_t Avtp_Vss_GetDatatype(Avtp_Vss_t* pdu);
+uint64_t Avtp_Vss_GetMsgTimestamp(Avtp_Vss_t* pdu);
+void Avtp_Vss_GetVssPath(Avtp_Vss_t* pdu, VssPath_t* val);
+void Avtp_Vss_GetVssData(Avtp_Vss_t* pdu, VssData_t* val);
+uint8_t Avtp_Vss_GetVSSDataStringArrayLength(uint8_t* vss_data_string_array,
+                                                    uint16_t total_length);
+void Avtp_Vss_DeserializeStringArray(VssDataStringArray_t* vss_data_string_array,
+                                     VssDataString_t* strings[],
+                                     uint16_t num_strings);
+void Avtp_Vss_SetAcfMsgType(Avtp_Vss_t* pdu, Avtp_AcfMsgType_t val);
+void Avtp_Vss_SetAcfMsgLength(Avtp_Vss_t* pdu, uint8_t val);
+void Avtp_Vss_SetPad(Avtp_Vss_t* pdu, uint8_t val);
+void Avtp_Vss_SetMtv(Avtp_Vss_t* pdu, uint8_t val);
+void Avtp_Vss_SetAddrMode(Avtp_Vss_t* pdu, Vss_Addr_Mode_t val);
+void Avtp_Vss_SetOpCode(Avtp_Vss_t* pdu, Vss_Op_Code_t val);
+void Avtp_Vss_SetDatatype(Avtp_Vss_t* pdu, Vss_Datatype_t val);
+void Avtp_Vss_SetMsgTimestamp(Avtp_Vss_t* pdu, uint64_t val);
+void Avtp_Vss_SetVssPath(Avtp_Vss_t* pdu, VssPath_t* val);
+void Avtp_Vss_SetVssData(Avtp_Vss_t* pdu, VssData_t* val);
+void Avtp_Vss_SerializeStringArray(VssDataStringArray_t* vss_data_string_array,
+                                   VssDataString_t* strings[],
+                                   uint16_t num_strings);

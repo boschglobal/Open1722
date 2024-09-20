@@ -38,7 +38,6 @@
 #include <stdint.h>
 
 #include "avtp/Defines.h"
-#include "avtp/acf/Common.h"
 
 #define AVTP_VSS_BRIEF_HEADER_LEN   (1 * AVTP_QUADLET_SIZE)
 #define AVTP_ACF_TYPE_VSS_BRIEF     0x42
@@ -61,6 +60,8 @@ typedef enum  {
     AVTP_VSS_BRIEF_FIELD_VSS_OP,
     AVTP_VSS_BRIEF_FIELD_VSS_DATATYPE,
     AVTP_VSS_BRIEF_FIELD_MSG_TIMESTAMP,
+    AVTP_VSS_FIELD_VSS_PATH,
+    AVTP_VSS_FIELD_VSS_DATA,
 
     /* Count number of fields for bound checks */
     AVTP_VSS_BRIEF_FIELD_MAX
@@ -72,19 +73,17 @@ typedef enum  {
  *
  * @param vss_pdu Pointer to the first bit of a 1722 ACF VSS PDU.
  */
-int Avtp_VssBrief_Init(Avtp_VssBrief_t* vss_pdu);
+void Avtp_VssBrief_Init(Avtp_VssBrief_t* vss_pdu);
 
 /**
  * Returns the value of an an ACF VSS PDU field as specified in the
  * VSS - IEEE 1722 Mapping Specification.
  *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
+ * @param vss_pdu Pointer to the first bit of an IEEE 1722 ACF VSS PDU.
  * @param field Specifies the position of the data field to be read
- * @param value Pointer to location to store the value.
- * @returns This function returns 0 if the data field was successfully read from
- * the 1722 ACF VSS PDU.
+ * @returns Value of the specified field of the IEEE 1722 ACF VSS PDU.
  */
-int Avtp_VssBrief_GetField(Avtp_VssBrief_t* vss_pdu, Avtp_VssBriefFields_t field, uint64_t* value);
+uint64_t Avtp_VssBrief_GetField(Avtp_VssBrief_t* vss_pdu, Avtp_VssBriefFields_t field);
 
 /**
  * Sets the value of an an ACF VSS PDU field as specified in the
@@ -93,41 +92,5 @@ int Avtp_VssBrief_GetField(Avtp_VssBrief_t* vss_pdu, Avtp_VssBriefFields_t field
  * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
  * @param field Specifies the position of the data field to be read
  * @param value Pointer to location to store the value.
- * @returns This function returns 0 if the data field was successfully set in
- * the 1722 ACF VSS PDU.
  */
-int Avtp_VssBrief_SetField(Avtp_VssBrief_t* vss_pdu, Avtp_VssBriefFields_t field, uint64_t value);
-
-/**
- * Copies the payload data into the ACF VSS frame. This function will also set the
- * length and pad fields while inserting the padded bytes.
- *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param frame_id ID of the VSS frame
- * @param payload Pointer to the payload byte array
- * @param payload_length Length of the payload.
- * @returns Returns number of processed bytes (header + payload + padding)
- */
-int Avtp_VssBrief_SetPayload(Avtp_VssBrief_t* vss_pdu, uint32_t frame_id , uint8_t* payload,
-                             uint16_t payload_length);
-
-/**
- * Returns pointer to payload of an ACF VSS frame.
- *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param payload_length payload length set by the function (if not NULL)
- * @param pdu_length total pdu length set by the function (if not NULL)
- * @return Pointer to ACF VSS frame payload
- */
-uint8_t* Avtp_VssBrief_GetPayload(Avtp_VssBrief_t* vss_pdu, uint16_t* payload_length, uint16_t *pdu_length);
-
-/**
- * Finalizes the ACF VSS frame. This function will set the
- * length and pad fields while inserting the padded bytes.
- *
- * @param vss_pdu Pointer to the first bit of an 1722 ACF VSS PDU.
- * @param payload Pointer to the payload byte array
- * @param payload_length Length of the payload.
- * @returns Returns number of processed bytes (header + payload + padding)
- */
-int Avtp_VssBrief_Finalize(Avtp_VssBrief_t* vss_pdu, uint16_t payload_length);
+void Avtp_VssBrief_SetField(Avtp_VssBrief_t* vss_pdu, Avtp_VssBriefFields_t field, uint64_t value);

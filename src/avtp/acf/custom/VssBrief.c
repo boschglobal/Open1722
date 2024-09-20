@@ -30,7 +30,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "avtp/acf/Common.h"
+#include "avtp/acf/AcfCommon.h"
 #include "avtp/acf/custom/VssBrief.h"
 #include "avtp/Utils.h"
 #include "avtp/Defines.h"
@@ -48,33 +48,27 @@ static const Avtp_FieldDescriptor_t Avtp_VssBriefFieldDesc[AVTP_VSS_BRIEF_FIELD_
     [AVTP_VSS_BRIEF_FIELD_MTV]                = { .quadlet = 0, .offset = 18, .bits =  1 },
     [AVTP_VSS_BRIEF_FIELD_ADDR_MODE]          = { .quadlet = 0, .offset = 19, .bits =  2 },
     [AVTP_VSS_BRIEF_FIELD_VSS_OP]             = { .quadlet = 0, .offset = 21, .bits =  3 },
-    [AVTP_VSS_BRIEF_FIELD_VSS_DATATYPE]       = { .quadlet = 0, .offset = 24, .bits =  8 },
-    [AVTP_VSS_BRIEF_FIELD_MSG_TIMESTAMP]      = { .quadlet = 1, .offset =  0, .bits = 64 }
+    [AVTP_VSS_BRIEF_FIELD_VSS_DATATYPE]       = { .quadlet = 0, .offset = 24, .bits =  8 }
 };
 
-int Avtp_VssBrief_Init(Avtp_VssBrief_t* vss_pdu) {
+void Avtp_VssBrief_Init(Avtp_VssBrief_t* vss_pdu) {
 
-    if(!vss_pdu) {
-        return -EINVAL;
+    if(vss_pdu != NULL) {
+        memset(vss_pdu, 0, sizeof(Avtp_VssBrief_t));
+        Avtp_VssBrief_SetField(vss_pdu, AVTP_VSS_BRIEF_FIELD_ACF_MSG_TYPE, AVTP_ACF_TYPE_VSS_BRIEF);
     }
-
-    memset(vss_pdu, 0, sizeof(Avtp_VssBrief_t));
-    Avtp_VssBrief_SetField(vss_pdu, AVTP_VSS_BRIEF_FIELD_ACF_MSG_TYPE, AVTP_ACF_TYPE_VSS_BRIEF);
-
-    return 0;
-
 }
 
-int Avtp_VssBrief_GetField(Avtp_VssBrief_t* vss_pdu,
-                            Avtp_VssBriefFields_t field, uint64_t* value)
+uint64_t Avtp_VssBrief_GetField(Avtp_VssBrief_t* vss_pdu,
+                            Avtp_VssBriefFields_t field)
 {
     return Avtp_GetField(Avtp_VssBriefFieldDesc, AVTP_VSS_BRIEF_FIELD_MAX,
-                         (uint8_t *) vss_pdu, (uint8_t) field, value);
+                         (uint8_t *) vss_pdu, (uint8_t) field);
 }
 
-int Avtp_VssBrief_SetField(Avtp_VssBrief_t* vss_pdu,
+void Avtp_VssBrief_SetField(Avtp_VssBrief_t* vss_pdu,
                             Avtp_VssBriefFields_t field, uint64_t value)
 {
-    return Avtp_SetField(Avtp_VssBriefFieldDesc, AVTP_VSS_BRIEF_FIELD_MAX,
+    Avtp_SetField(Avtp_VssBriefFieldDesc, AVTP_VSS_BRIEF_FIELD_MAX,
                          (uint8_t *) vss_pdu, (uint8_t) field, value);
 }
