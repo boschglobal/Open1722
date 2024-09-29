@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
         cf_length += res;
         acf_length = res;
 
-        Avtp_Vss_Pad(acf_pdu, acf_length);
+        Avtp_Vss_Pad((Avtp_Vss_t*) acf_pdu, acf_length);
         uint8_t pad_length = Avtp_Vss_GetField((Avtp_Vss_t*)acf_pdu, AVTP_VSS_FIELD_PAD);
         pdu_length += pad_length;
         cf_length += pad_length;

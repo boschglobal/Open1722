@@ -241,7 +241,7 @@ void Avtp_Vss_SetField(Avtp_Vss_t* pdu, Avtp_VssFields_t field, uint64_t value);
  * @param pdu Pointer to the first bit of an 1722 ACF VSS PDU.
  * @param vss_length Length of the VSS frame including the header bytes.
  */
-void Avtp_Vss_Pad(uint8_t* pdu, uint16_t vss_length);
+void Avtp_Vss_Pad(Avtp_Vss_t* pdu, uint16_t vss_length);
 
 /* Getter and Setter Functions*/
 Avtp_AcfMsgType_t Avtp_Vss_GetAcfMsgType(Avtp_Vss_t* pdu);
@@ -254,8 +254,8 @@ Vss_Datatype_t Avtp_Vss_GetDatatype(Avtp_Vss_t* pdu);
 uint64_t Avtp_Vss_GetMsgTimestamp(Avtp_Vss_t* pdu);
 void Avtp_Vss_GetVssPath(Avtp_Vss_t* pdu, VssPath_t* val);
 void Avtp_Vss_GetVssData(Avtp_Vss_t* pdu, VssData_t* val);
-uint8_t Avtp_Vss_GetVSSDataStringArrayLength(uint8_t* vss_data_string_array,
-                                                    uint16_t total_length);
+uint8_t Avtp_Vss_GetVSSDataStringArrayLength(VssDataStringArray_t* str_array);
+uint16_t Avtp_Vss_CalcVssPathLength (Avtp_Vss_t* pdu);
 void Avtp_Vss_DeserializeStringArray(VssDataStringArray_t* vss_data_string_array,
                                      VssDataString_t* strings[],
                                      uint16_t num_strings);
