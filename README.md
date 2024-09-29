@@ -112,6 +112,11 @@ Here's a small example how the Open1722 library can be used to build and parse I
 ``` C
 // my_1722_pdu.h
 
+#include "avtp/Udp.h"
+#include "avtp/acf/Tscf.h"
+#include "avtp/acf/Can.h"
+#include "avtp/acf/Lin.h"
+
 #define CAN_PAYLOAD_LEN 2
 #define LIN_PAYLOAD_LEN 3
 
@@ -142,6 +147,7 @@ int main()
 
     // Init UDP encapsulation header
     Avtp_Udp_Init(&pdu.udp);
+    Avtp_Udp_SetEncapsulationSeqNo(&pdu.udp, 12345);
 
     // Init TSCF header
     Avtp_Tscf_Init(&pdu.tscf);
@@ -150,16 +156,30 @@ int main()
     Avtp_Tscf_SetStreamId(&pdu.tscf, 0xAABBCCDDEEFF);
     Avtp_Tscf_SetTv(&pdu.tscf, 1);
     Avtp_Tscf_SetAvtpTimestamp(&pdu.tscf, 0x11223344);
+    Avtp_Tscf_SetStreamDataLength(&pdu.tscf,
+          AVTP_CAN_HEADER_LEN + CAN_PAYLOAD_LEN
+        + AVTP_LIN_HEADER_LEN + LIN_PAYLOAD_LEN);
 
     // Init CAN ACF message
     Avtp_Can_Init(&pdu.can);
     Avtp_Can_SetCanBusId(&pdu.can, 4);
+    Avtp_Can_SetAcfMsgLength(&pdu.can, 5);
+    Avtp_Can_SetPad(&pdu.can, 2);
     uint8_t canFrame[CAN_PAYLOAD_LEN] = {0x11, 0x22};
+    memcpy(&pdu.canPayload, canFrame, CAN_PAYLOAD_LEN);
 
     // Init LIN ACF message
     Avtp_Lin_Init(&pdu.lin);
+    Avtp_Lin_SetLinBusId(&pdu.can, 4);
+    Avtp_Lin_SetAcfMsgLength(&pdu.can, 4);
+    Avtp_Lin_SetPad(&pdu.can, 1);
     uint8_t linFrame[LIN_PAYLOAD_LEN] = {0x11, 0x22, 0x33};
+    memcpy(&pdu.linPayload, linFrame, LIN_PAYLOAD_LEN);
 
-    // Send packet to network
+    // Do something with packet (e.g. send to network or print)
+    for (int i = 0; i < sizeof(My1722Pdu_t); i++) {
+      printf("%02X ", ((uint8_t*)&pdu)[i]);
+    }
+    printf("\n");
 }
 ```
