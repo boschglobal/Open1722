@@ -60,7 +60,7 @@ static uint8_t seq_num = 0;
 static uint32_t udp_seq_num = 0;
 static uint8_t use_tscf = 0;
 static uint8_t use_udp = 0;
-static char VSS_PATH[13] = "Vehicle.Speed";
+static char VSS_PATH[] = "Vehicle.Speed";
 
 static struct argp_option options[] = {
     {"tscf", 't', 0, 0, "Use TSCF"},
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
         uint8_t* acf_pdu = pdu + pdu_length;
         VssPath_t vss_path = {
-            .vss_interop_path.path_length = 13,
+            .vss_interop_path.path_length = strlen(VSS_PATH),
             .vss_interop_path.path = VSS_PATH
         };
         VssData_t data = {
