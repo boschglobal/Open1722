@@ -115,7 +115,7 @@ When addr_mode=interop_mode this field contains the VSS path as UTF-8 string pre
 
 ![VSS path in interop mode](./img/interop_path.svg)
 
-with 
+with
 
 - VSS_PATH_LEN: The length the VSS_PATH in octets
 - VSS_PATH: The VSS Path encoded as UTF-8 (not NULL terminated)
@@ -162,7 +162,10 @@ For example the vss_data section for  an array of uint16 values (vss_datatype=82
 The vss_data section for  an array strings (vss_datatype=8B<sub>16</sub>) including "VSS", "❤️", "IEEE1722" would be encoded as the following hex sequence
 
 ```hex
-00 17 00 03  56 53 53 
-00 06 E2 9D A4 EF B8 8F 
+00 17 00 03  56 53 53
+00 06 E2 9D A4 EF B8 8F
 00 08 49 45 45 45 31 37 32 32
 ```
+
+## Dissectors
+Wireshark dissectors to observe this protocol are available [here](./dissectors/). These dissectors can be simply copied into the folder for Lua dissectors of the Wireshark (e.g., ```~/.local/lib/wireshark/plugins``` in Ubuntu).
