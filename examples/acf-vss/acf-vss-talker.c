@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
             .vss_interop_path.path = VSS_PATH
         };
         VssData_t data = {
-            .data_float = 1.234
+            .data_float = (rand()%2500)/10.0
         };
         res = prepare_vss_interop_packet(acf_pdu, VSS_FLOAT,
                                             PUBLISH_CURRENT_VALUE,
