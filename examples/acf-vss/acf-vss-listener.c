@@ -105,7 +105,9 @@ static error_t parser(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
-static struct argp argp = { options, parser, 0, 0};
+static char args_doc[] = "[ifname] dst-mac-address";
+
+static struct argp argp = { options, parser, args_doc, 0};
 
 int main(int argc, char *argv[])
 {

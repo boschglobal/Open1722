@@ -62,6 +62,16 @@ static uint8_t use_tscf = 0;
 static uint8_t use_udp = 0;
 static char VSS_PATH[] = "Vehicle.Speed";
 
+static char doc[] = "\nacf-vss-talker -- a program designed to send VSS messages in \
+                     customized IEEE 1722 frames.\
+                    \vEXAMPLES\
+                    \n\n  acf-vss-talker -u 10.0.0.2:17220\
+                    \n    (Send VSS messages over UDP to 10.0.0.2 at UDP port 17220)\
+                    \n  acf-vss-talker eth0 11:22:33:44:55:66\
+                    \n    (Send VSS messages over Ethernet to 11:22:33:44:55:66 over eth0 interface)";
+
+static char args_doc[] = "[ifname] dst-mac-address/dst-nw-address:port";
+
 static struct argp_option options[] = {
     {"tscf", 't', 0, 0, "Use TSCF"},
     {"udp", 'u', 0, 0, "Use UDP" },
@@ -127,7 +137,7 @@ static error_t parser(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
-static struct argp argp = { options, parser, NULL, NULL };
+static struct argp argp = { options, parser, args_doc, doc };
 
 static int init_cf_pdu(uint8_t* pdu)
 {
