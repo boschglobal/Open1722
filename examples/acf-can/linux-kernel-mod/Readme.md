@@ -12,7 +12,7 @@ Make sure you are generally setup to compile kernel modules, e.g.
 
 ```
 sudo apt update && sudo apt upgrade
-sudo apt-get install gcc make build-essential libncurses-dev exuberant-ctags build-essential linux-headers-`uname -r
+sudo apt-get install gcc make build-essential libncurses-dev exuberant-ctags build-essential linux-headers-`uname -r`
 ```
 
 Then in this folder do
@@ -35,14 +35,14 @@ The reason is, currently we are only able to release BSD licensed ode in this re
 If you load the module the first time from a local folder, and your kernel has not yet loaded anything form the CAN subsystem you will get missing symbols. Easy fix, jut load `vcan` module via mpdprobe, whoch will make sure all necessary dependenecies are pulled into into the kernel
 
 ```
-sudo modprobbe vcan
+sudo modprobe vcan
 ```
 
 Afterwards load module with
 
 ```
-sudo insmod acfcan.ko 
-``` 
+sudo insmod acfcan.ko
+```
 
 ## Using
 You can add a number of acfcan interfaces. Some aspects like destination MAC or ethernet infterface to be used need to be configured via sysfs _after_ the interface is created, but _before_ it is set to up.
