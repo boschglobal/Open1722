@@ -54,8 +54,6 @@
 
 char *version = "2016";
 
-#define IEEE1722_PROTO 0x22f0
-
 static struct packet_type ieee1722_packet_type;
 
 struct list_head acfcaninterface_list;
@@ -65,43 +63,6 @@ static struct attribute_group dev_attr_group = {
     .name = "acfcan", /* Subdirectory name in sysfs */
     .attrs = (struct attribute **)dev_attrs,
 };
-
-
-
-/* rocessing Outcome:
-
-If a handler returns NET_RX_SUCCESS, the packet is considered successfully processed, and no further handlers are called.
-If a handler returns NET_RX_DROP, the packet is dropped, and no further handlers are called.
-If a handler returns NET_RX_BAD or any other value, the network stack continues to the next handler in the list.
-* Logic shoudl be: 
-* Check whether this is an 1722 ACF-CAN packet. If not: NET_RX_BAD
-* If it is:  Extract receving if and streamid. If we have
-* an interface for that, extract can and forward. In case of problems
-* NET_RX_DROP.
-* If all done NET_RX_SUCCESS
-*/
-static int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
-		   struct packet_type *pt, struct net_device *orig_dev)
-{
-    struct ethhdr *eth = eth_hdr(skb);
-
-    printk(KERN_INFO "Received packet: src=%pM, dst=%pM, proto=0x%04x\n",
-           eth->h_source, eth->h_dest, ntohs(eth->h_proto));
-
-	//Iterate over all active devices
-	struct list_head *pos = NULL ; 
-	struct acfcan_cfg  *cfg  = NULL ; 
-	list_for_each ( pos , &acfcaninterface_list ) 
-    { 
-         cfg = list_entry ( pos, struct acfcan_cfg , list ); 
-         printk ("Active, if=%s, stream=%016llxx\n" , cfg->ethif, cfg->streamid); 
-    }
-
-    // Process the packet here
-    //return RX_HANDLER_PASS; // Pass the packet to the next handler
-	return NET_RX_SUCCESS; 
-}
-
 
 static void acfcan_rx(struct sk_buff *skb, struct net_device *dev)
 {
@@ -203,7 +164,7 @@ static int acfcan_up(struct net_device *dev)
 		return -EINVAL;
 	}
 
-	cfg->netdev=ethif;
+	cfg->eth_netdev=ethif;
 
 	list_add(&acfcaninterface_list, &cfg->list);
 	printk(KERN_INFO "ACF-CAN interface %s up\n", dev->name);
@@ -213,8 +174,8 @@ static int acfcan_up(struct net_device *dev)
 static int acfcan_down(struct net_device *dev)
 {
 	struct acfcan_cfg *cfg = get_acfcan_cfg(dev);
-	if (cfg->netdev) {
-		netdev_put(cfg->netdev, &cfg->tracker);
+	if (cfg->eth_netdev) {
+		netdev_put(cfg->eth_netdev, &cfg->tracker);
 	}
 	list_del(&cfg->list);
     INIT_LIST_HEAD(&cfg->list);
@@ -259,17 +220,20 @@ static void acfcan_setup(struct net_device *dev)
 	dev->needs_free_netdev = true;
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(dev);
-	cfg->streamid = 0x1234;
+	cfg->rx_streamid = 0xbbbb;
+	cfg->tx_streamid = 0xaaaa;
 	cfg->dstmac[0] = 0xff;
 	cfg->dstmac[1] = 0xff;
 	cfg->dstmac[2] = 0xff;
 	cfg->dstmac[3] = 0xff;
 	cfg->dstmac[4] = 0xff;
 	cfg->dstmac[5] = 0xff;
-	cfg->netdev = NULL;
+	cfg->eth_netdev = NULL;
+	cfg->can_netdev = dev;
 	cfg->ethif[0] = '\0';  //this is a string so setting first byte to 0 is fine
 	cfg->sequenceNum = 0;
 	cfg->canbusId = 0;
+	cfg->flags = TX_ENABLE | RX_ENABLE; //todo: Make configurable
 	INIT_LIST_HEAD( & cfg->list);
 }
 
@@ -279,8 +243,8 @@ static void acfcan_remove(struct net_device *dev, struct list_head *head)
 	// Remove the custom sysfs attribute
 	device_remove_file(&dev->dev, &dev_attr_dstmac);
 	struct acfcan_cfg *cfg =  get_acfcan_cfg(dev);
-	if (cfg->netdev) {
-		netdev_put(cfg->netdev, &cfg->tracker);
+	if (cfg->eth_netdev) {
+		netdev_put(cfg->eth_netdev, &cfg->tracker);
 	}
 
 	unregister_netdevice(dev);
