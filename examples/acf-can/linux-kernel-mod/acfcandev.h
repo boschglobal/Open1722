@@ -37,17 +37,25 @@
 #include <linux/list.h>
 #include <linux/sysfs.h>
 
+#define IEEE1722_PROTO 0x22f0
+
+#define TX_ENABLE (1 << 7)
+#define RX_ENABLE (1 << 6)
+
 
 /* Private per-device configuration */
 struct acfcan_cfg
 { 
     struct list_head list; //we need a list so we can map received ethernet packets
     __u8 dstmac[6]; //send acf-can frames to this mac
-    __u64 streamid; //use acf-can stream-id
+    __u64 rx_streamid; //listen to this acf-can stream-id
+	__u64 tx_streamid; //send acf-can frames with this stream-id
+	__u8 flags;
 	__u8 sequenceNum;
 	__u8 canbusId;
     char ethif[IFNAMSIZ];
-    struct net_device *netdev; //use this interface for acf-can frames
+    struct net_device *eth_netdev; //this is the eth if used for sending and receiving
+	struct net_device *can_netdev; //this is the (virtual) can if 
     netdevice_tracker tracker;
 };
 
@@ -128,15 +136,16 @@ static ssize_t ethif_show(struct device *dev, struct device_attribute *attr, cha
 	struct net_device *net_dev = to_net_dev(dev);
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
-	if (cfg->netdev) {
-		return sprintf(buf, "%s", cfg->netdev->name);
+	if (cfg->eth_netdev) {
+		return sprintf(buf, "%s", cfg->eth_netdev->name);
 	} else {
 		buf[0] = '\0';
 		return 0;
 	}
 }
 
-static ssize_t streamid_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+
+static ssize_t tx_streamid_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	if (count == 1 && *buf == '\n') {
 		return 1;
@@ -153,17 +162,50 @@ static ssize_t streamid_store(struct device *dev, struct device_attribute *attr,
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
-    __u64 streamid;
-    int rc = sscanf(buf, "%llx", &streamid);
+    __u64 tx_streamid;
+    int rc = sscanf(buf, "%llx", &tx_streamid);
     if (!rc) {
         printk(KERN_INFO "ACF-CAN: Invalid stream id\n");
         return -EINVAL;
     }
 
-    cfg->streamid = streamid;
+    cfg->tx_streamid = tx_streamid;
 
 
-	printk(KERN_INFO "ACF-CAN setting streamid 0x%016llx for %s\n", streamid,net_dev->name);
+	printk(KERN_INFO "ACF-CAN TX streamid 0x%016llx for %s\n", tx_streamid,net_dev->name);
+	return count;
+}
+
+
+
+static ssize_t rx_streamid_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	if (count == 1 && *buf == '\n') {
+		return 1;
+	}
+
+	struct net_device *net_dev = to_net_dev(dev);
+
+	// Check if the device is up
+    if (netif_running(net_dev)) {
+        printk(KERN_INFO "ACF-CAN: Cannot change stream id while device %s is up\n", net_dev->name);
+        return -EBUSY; // Return an appropriate error code
+    }
+
+
+	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
+
+    __u64 rx_streamid;
+    int rc = sscanf(buf, "%llx", &rx_streamid);
+    if (!rc) {
+        printk(KERN_INFO "ACF-CAN: Invalid stream id\n");
+        return -EINVAL;
+    }
+
+    cfg->rx_streamid = rx_streamid;
+
+
+	printk(KERN_INFO "ACF-CAN RX streamid 0x%016llx for %s\n", rx_streamid,net_dev->name);
 	return count;
 }
 
@@ -199,13 +241,22 @@ static ssize_t busid_store(struct device *dev, struct device_attribute *attr, co
 }
 
 
-static ssize_t streamid_show(struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t rx_streamid_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct net_device *net_dev = to_net_dev(dev);
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
-	return sprintf(buf, "0x%016llx", cfg->streamid);
+	return sprintf(buf, "0x%016llx", cfg->rx_streamid);
 }
+
+static ssize_t tx_streamid_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct net_device *net_dev = to_net_dev(dev);
+	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
+
+	return sprintf(buf, "0x%016llx", cfg->tx_streamid);
+}
+
 
 static ssize_t busid_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -218,7 +269,8 @@ static ssize_t busid_show(struct device *dev, struct device_attribute *attr, cha
 
 static DEVICE_ATTR_RW(dstmac);
 static DEVICE_ATTR_RW(ethif);
-static DEVICE_ATTR_RW(streamid);
+static DEVICE_ATTR_RW(rx_streamid);
+static DEVICE_ATTR_RW(tx_streamid);
 static DEVICE_ATTR_RW(busid);
 
 
@@ -227,7 +279,8 @@ static DEVICE_ATTR_RW(busid);
 static struct attribute *dev_attrs[] = {
     &dev_attr_dstmac.attr,
 	&dev_attr_ethif.attr,
-    &dev_attr_streamid.attr,
+    &dev_attr_tx_streamid.attr,
+	&dev_attr_rx_streamid.attr,
 	&dev_attr_busid.attr,
     NULL, /* NULL-terminated list */
 };

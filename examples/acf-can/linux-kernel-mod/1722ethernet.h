@@ -6,6 +6,7 @@
 
 #include "avtp/acf/Ntscf.h"
 #include "avtp/acf/Can.h"
+#include "avtp/CommonHeader.h"
 
 
 #define CAN_PAYLOAD_LEN 64
@@ -22,3 +23,6 @@ void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const st
 void calculate_and_set_ntscf_size(ACFCANPdu_t *pdu);
 
 int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb);
+
+int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
+		   struct packet_type *pt, struct net_device *orig_dev);

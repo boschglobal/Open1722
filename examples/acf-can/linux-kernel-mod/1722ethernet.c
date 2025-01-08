@@ -12,7 +12,7 @@ void prepare_ntscf_header(Avtp_Ntscf_t *ntscf_header, struct acfcan_cfg *cfg) {
     Avtp_Ntscf_Init(ntscf_header);
     Avtp_Ntscf_SetVersion(ntscf_header, 0);
     Avtp_Ntscf_SetSequenceNum(ntscf_header, cfg->sequenceNum++); //This can't be right. Increase?
-    Avtp_Ntscf_SetStreamId(ntscf_header, cfg->streamid);
+    Avtp_Ntscf_SetStreamId(ntscf_header, cfg->tx_streamid);
 }
 
 void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const struct sk_buff *skb) {
@@ -72,7 +72,7 @@ void calculate_and_set_ntscf_size(ACFCANPdu_t *pdu) {
 int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
 {
     struct acfcan_cfg *cfg = get_acfcan_cfg(can_dev);
-    if (cfg->netdev == NULL)
+    if (cfg->eth_netdev == NULL)
     {
         printk(KERN_INFO "No ethernet device set for ACF-CAN device %s\n", can_dev->name);
         return -1;
@@ -112,11 +112,11 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
     struct ethhdr *eth = (struct ethhdr *)skb_push(skb_eth, sizeof(struct ethhdr));
 
     memcpy(eth->h_dest, cfg->dstmac, ETH_ALEN);
-    memcpy(eth->h_source, cfg->netdev->dev_addr, ETH_ALEN);
+    memcpy(eth->h_source, cfg->eth_netdev->dev_addr, ETH_ALEN);
     eth->h_proto = htons(0x22F0);
 
     // Set the network device
-    skb_eth->dev = cfg->netdev;
+    skb_eth->dev = cfg->eth_netdev;
     skb_eth->protocol = eth->h_proto;
     skb_eth->ip_summed = CHECKSUM_NONE;
 
@@ -126,3 +126,96 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
 
     return 0;
 }
+
+extern struct list_head acfcaninterface_list;
+
+/* rocessing Outcome:
+
+If a handler returns NET_RX_SUCCESS, the packet is considered successfully processed, and no further handlers are called.
+If a handler returns NET_RX_DROP, the packet is dropped, and no further handlers are called.
+If a handler returns NET_RX_BAD or any other value, the network stack continues to the next handler in the list.
+* Logic shoudl be: 
+* Check whether this is an 1722 ACF-CAN packet. If not: NET_RX_BAD
+* If it is:  Extract receving if and streamid. If we have
+* an interface for that, extract can and forward. In case of problems
+* NET_RX_DROP.
+* If all done NET_RX_SUCCESS
+*/
+int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
+		   struct packet_type *pt, struct net_device *orig_dev)
+{
+    struct ethhdr *eth = eth_hdr(skb);
+	if (ntohs(eth->h_proto) != IEEE1722_PROTO) {
+		return NET_RX_DROP;
+	}
+
+
+    printk(KERN_INFO "Received packet: src=%pM, dst=%pM, proto=0x%04x\n",
+           eth->h_source, eth->h_dest, ntohs(eth->h_proto));
+
+    printk(KERN_INFO "Data: ");
+    for (int i = 0; i < skb->len; i++)
+    {
+        printk(KERN_CONT "%02x ", skb->data[i]);
+    }
+    printk(KERN_CONT "\n");
+
+	//Check if this is an ACF-CAN packet
+	if (skb->len < sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t)) {
+		printk(KERN_INFO "ACFCAN short packet, %u > %li\n", skb->len, sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t));
+		return NET_RX_DROP;
+	}
+
+	Avtp_CommonHeader_t *common = (Avtp_CommonHeader_t *)skb->data;
+ 	if (Avtp_CommonHeader_GetSubtype(common) != AVTP_SUBTYPE_NTSCF) {
+		printk(KERN_INFO "ACFCAN: Drop non NTSCF-type %i\n",Avtp_CommonHeader_GetSubtype(common));
+		return NET_RX_DROP;
+	}
+	
+	Avtp_Ntscf_t *ntscf = (Avtp_Ntscf_t *)skb->data;
+	Avtp_Can_t *can = (Avtp_Can_t *)(skb->data + sizeof(Avtp_Ntscf_t));
+
+    //This is bytes, not quadlets
+    uint16_t msg_length = Avtp_Ntscf_GetNtscfDataLength(ntscf);
+    
+    //seq_num = Avtp_Ntscf_GetSequenceNum((Avtp_Ntscf_t*)cf_pdu);
+    if (msg_length > skb->len - sizeof(Avtp_Ntscf_t)) {
+        printk(KERN_INFO "ACFCAN: Drop short packet. NTSCF length %i, packet bytes: %li\n", msg_length, skb->len - sizeof(Avtp_Ntscf_t));
+        return NET_RX_DROP;
+    }
+
+    uint64_t stream_id = Avtp_Ntscf_GetStreamId(ntscf);
+    uint8_t  busid = Avtp_Can_GetCanBusId(can);
+    
+    printk(KERN_INFO "ACFCAN: Received packet, stream_id=%016llx, busid=%i , msg_length=%i on %s\n", stream_id, busid, msg_length, dev->name);
+    
+    
+    
+	//Iterate over all active devices
+	struct list_head *pos = NULL ; 
+	struct acfcan_cfg  *cfg  = NULL;
+    struct net_device *can_dev = NULL; 
+	list_for_each ( pos , &acfcaninterface_list ) 
+    { 
+         cfg = list_entry ( pos, struct acfcan_cfg , list ); 
+        printk(KERN_INFO "Checking if=%s, stream=%016llx, bus=%i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId);
+        if (cfg->rx_streamid == stream_id && cfg->canbusId == busid && strcmp(cfg->ethif, dev->name) == 0) {
+            printk ("Found match, if=%s, stream=%016llx, busid %i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId); 
+            can_dev = cfg->can_netdev;
+            break; //Only first match
+        }
+    }
+
+    if (can_dev == NULL) {
+        printk(KERN_INFO "No receiving ACFCAN for stream=%016llx, busid %i\n", stream_id, busid);
+        return NET_RX_DROP;
+    }
+
+    //Forward the packet
+
+
+    // Process the packet here
+    //return RX_HANDLER_PASS; // Pass the packet to the next handler
+	return NET_RX_SUCCESS; 
+}
+
