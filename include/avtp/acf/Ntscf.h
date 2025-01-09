@@ -48,7 +48,7 @@ extern "C" {
 typedef struct {
     uint8_t header[AVTP_NTSCF_HEADER_LEN];
     uint8_t payload[0];
-} Avtp_Ntscf_t;
+} __attribute__((packed)) Avtp_Ntscf_t;
 
 typedef enum {
     AVTP_NTSCF_FIELD_SUBTYPE,

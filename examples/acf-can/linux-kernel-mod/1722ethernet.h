@@ -15,7 +15,7 @@ typedef struct {
     Avtp_Ntscf_t ntscf;
     // IEEE 1722 ACF message #1
     Avtp_Can_t can;
-} ACFCANPdu_t;
+} __attribute__((packed)) ACFCANPdu_t;
 
 
 void prepare_ntscf_header(Avtp_Ntscf_t *ntscf_header, struct acfcan_cfg *cfg);

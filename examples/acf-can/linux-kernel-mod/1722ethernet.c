@@ -4,6 +4,7 @@
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 #include <linux/skbuff.h>
+#include <linux/can/core.h>
 #include <linux/if_ether.h>
 #include <linux/timekeeping.h>
 
@@ -150,10 +151,10 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 	}
 
 
-    printk(KERN_INFO "Received packet: src=%pM, dst=%pM, proto=0x%04x\n",
+    printk(KERN_INFO "Received packet: src=%pM, dst=%pM, proto=0x%04x ",
            eth->h_source, eth->h_dest, ntohs(eth->h_proto));
 
-    printk(KERN_INFO "Data: ");
+    printk(KERN_CONT "Data: ");
     for (int i = 0; i < skb->len; i++)
     {
         printk(KERN_CONT "%02x ", skb->data[i]);
@@ -211,11 +212,68 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
         return NET_RX_DROP;
     }
 
-    //Forward the packet
+    uint8_t is_fd=Avtp_Can_GetFdf(can);
+    struct sk_buff *can_skb;
+    struct can_frame *cf;
+    struct canfd_frame *cfd;
+
+    int err;
 
 
-    // Process the packet here
-    //return RX_HANDLER_PASS; // Pass the packet to the next handler
-	return NET_RX_SUCCESS; 
+
+    // Allocate a CAN skb
+    if (is_fd) {
+        can_skb = alloc_canfd_skb(can_dev, &cfd);
+        cf=(struct can_frame *)cfd; //This is a bit of a hack, but we know that the first part of the canfd_frame is the same as can_frame
+    } else {
+        can_skb = alloc_can_skb(can_dev, &cf);
+    }
+    if (!can_skb) {
+        printk(KERN_ERR "Failed to allocate CAN skb\n");
+        return NET_RX_DROP;
+    }
+
+    cf->can_id = Avtp_Can_GetCanIdentifier(can);
+    if (Avtp_Can_GetEff(can)) {
+        cf->can_id |= CAN_EFF_FLAG;
+    }
+    if (Avtp_Can_GetRtr(can)) {
+        cf->can_id |= CAN_RTR_FLAG;
+    }
+    cf->can_dlc = msg_length - AVTP_CAN_HEADER_LEN - Avtp_Can_GetPad(can);
+
+    if (is_fd) {
+        cfd->flags = 0;
+        if (Avtp_Can_GetBrs(can)) {
+            cfd->flags |= CANFD_BRS;
+        }
+        if (Avtp_Can_GetFdf(can)) {
+            cfd->flags |= CANFD_FDF;
+        }
+        if (Avtp_Can_GetEsi(can)) {
+            cfd->flags |= CANFD_ESI;
+        }
+    }
+
+    if (is_fd && cf->can_dlc > CANFD_MAX_DLEN) {
+        printk(KERN_ERR "DLC too large for CAN FD\n");
+        return NET_RX_DROP;
+    }
+    else if (!is_fd && cf->can_dlc > CAN_MAX_DLEN) {
+        printk(KERN_ERR "DLC too large for CAN\n");
+        return NET_RX_DROP;
+    }
+
+    memcpy(cf->data, skb->data  + sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t), cf->can_dlc);
+
+    // Send the CAN skb
+    err = can_send(can_skb, 1);
+    if (err) {
+        printk(KERN_ERR "Failed to send CAN skb: %d\n", err);
+        kfree_skb(skb);
+        return NET_RX_DROP;
+    }
+
+    return NET_RX_SUCCESS; 
 }
 
