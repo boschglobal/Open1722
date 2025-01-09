@@ -95,9 +95,16 @@ static netdev_tx_t acfcan_tx(struct sk_buff *skb, struct net_device *dev)
 	/* set flag whether this packet has to be looped back */
 	loop = skb->pkt_type == PACKET_LOOPBACK;
 
+	//This means we generated the frame ourself so we should NOT
+	//forward it to the TX stream
+	uint8_t mine = skb->cb[SKB_CB_LOCATION] &  SKB_CB_MINE;
+	
 	skb_tx_timestamp(skb);
 
-	forward_can_frame(dev, skb);
+	if (!mine) {
+		//Forward the frame to the TX stream
+		forward_can_frame(dev, skb);
+	}
 
 	if (!echo)
 	{
@@ -204,6 +211,7 @@ static void acfcan_setup(struct net_device *dev)
 	dev->hard_header_len = 0;
 	dev->addr_len = 0;
 	dev->tx_queue_len = 0;
+	//Try to lie about echo flag
 	dev->flags = IFF_NOARP;
 	can_set_ml_priv(dev, netdev_priv(dev));
 

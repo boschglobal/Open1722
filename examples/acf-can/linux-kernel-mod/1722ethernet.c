@@ -266,7 +266,9 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 
     memcpy(cf->data, skb->data  + sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t), cf->can_dlc);
 
-    // Send the CAN skb
+    can_skb->cb[SKB_CB_LOCATION] |= SKB_CB_MINE; // Mark the skb as our own
+    // Send the CAN skb, disable loop (otherwise the module would receive and forward
+    // it's own frame)
     err = can_send(can_skb, 1);
     if (err) {
         printk(KERN_ERR "Failed to send CAN skb: %d\n", err);
