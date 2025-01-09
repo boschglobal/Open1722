@@ -42,6 +42,11 @@
 #define TX_ENABLE (1 << 7)
 #define RX_ENABLE (1 << 6)
 
+//this is more guesswork. We need some space and it seems 
+//raw can is using one int.... Not sure what would happen with
+//ISO-TP and such things....
+#define SKB_CB_LOCATION 4
+#define SKB_CB_MINE (1 << 7)
 
 /* Private per-device configuration */
 struct acfcan_cfg
