@@ -48,6 +48,14 @@
 #define SKB_CB_LOCATION 4
 #define SKB_CB_MINE (1 << 7)
 
+
+#define NOCHANGE_IF_UP(what) ({ \
+    if (netif_running(net_dev)) { \
+        printk(KERN_INFO "ACF-CAN: Cannot change %s while device %s is up\n", what, net_dev->name); \
+        return -EBUSY; \
+    }\
+})
+
 /* Private per-device configuration */
 struct acfcan_cfg
 { 
@@ -78,19 +86,15 @@ static ssize_t dstmac_store(struct device *dev, struct device_attribute *attr, c
 	}
 	struct net_device *net_dev = to_net_dev(dev);
 
-	// Check if the device is up
-    if (netif_running(net_dev)) {
-        printk(KERN_INFO "ACF-CAN: Cannot change dst mac while device %s is up\n", net_dev->name);
-        return -EBUSY; // Return an appropriate error code
-    }
+	NOCHANGE_IF_UP("destination MAC");
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
 	// Handle the input value here
 	__u8 newmac[6] = {0,1,2,3,4,5};
 	int rc = sscanf(buf,"%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",&newmac[0],&newmac[1],&newmac[2],&newmac[3],&newmac[4],&newmac[5]);
 	if (rc != 6) {
-		printk(KERN_INFO "ACF-CAN Can not set destination MAC for %s. to %s\n", net_dev->name,buf);
-		return count;
+		printk(KERN_INFO "ACF-CAN Can not set destination MAC for %s to %s\n", net_dev->name,buf);
+		return -EINVAL;
 	}
 	memcpy(cfg->dstmac, newmac, 6);
 	printk(KERN_INFO "ACF-CAN: Setting destination MAC for %s to %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx \n", net_dev->name, newmac[0],newmac[1],newmac[2],newmac[3],newmac[4],newmac[5]);
@@ -115,12 +119,7 @@ static ssize_t ethif_store(struct device *dev, struct device_attribute *attr, co
 
 	struct net_device *net_dev = to_net_dev(dev);
 
-	// Check if the device is up
-    if (netif_running(net_dev)) {
-        printk(KERN_INFO "ACF-CAN: Cannot change interface while device %s is up\n", net_dev->name);
-        return -EBUSY; // Return an appropriate error code
-    }
-
+	NOCHANGE_IF_UP("ethernet interface");
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
@@ -158,12 +157,7 @@ static ssize_t tx_streamid_store(struct device *dev, struct device_attribute *at
 
 	struct net_device *net_dev = to_net_dev(dev);
 
-	// Check if the device is up
-    if (netif_running(net_dev)) {
-        printk(KERN_INFO "ACF-CAN: Cannot change stream id while device %s is up\n", net_dev->name);
-        return -EBUSY; // Return an appropriate error code
-    }
-
+	NOCHANGE_IF_UP("tx stream id");
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
@@ -191,12 +185,7 @@ static ssize_t rx_streamid_store(struct device *dev, struct device_attribute *at
 
 	struct net_device *net_dev = to_net_dev(dev);
 
-	// Check if the device is up
-    if (netif_running(net_dev)) {
-        printk(KERN_INFO "ACF-CAN: Cannot change stream id while device %s is up\n", net_dev->name);
-        return -EBUSY; // Return an appropriate error code
-    }
-
+	NOCHANGE_IF_UP("rx stream id");
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
@@ -222,12 +211,7 @@ static ssize_t busid_store(struct device *dev, struct device_attribute *attr, co
 
 	struct net_device *net_dev = to_net_dev(dev);
 
-	// Check if the device is up
-    if (netif_running(net_dev)) {
-        printk(KERN_INFO "ACF-CAN: Cannot change bus id while device %s is up\n", net_dev->name);
-        return -EBUSY; // Return an appropriate error code
-    }
-
+	NOCHANGE_IF_UP("bus id");
 
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
