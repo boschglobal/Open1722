@@ -130,18 +130,7 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
 
 extern struct list_head acfcaninterface_list;
 
-/* rocessing Outcome:
 
-If a handler returns NET_RX_SUCCESS, the packet is considered successfully processed, and no further handlers are called.
-If a handler returns NET_RX_DROP, the packet is dropped, and no further handlers are called.
-If a handler returns NET_RX_BAD or any other value, the network stack continues to the next handler in the list.
-* Logic shoudl be: 
-* Check whether this is an 1722 ACF-CAN packet. If not: NET_RX_BAD
-* If it is:  Extract receving if and streamid. If we have
-* an interface for that, extract can and forward. In case of problems
-* NET_RX_DROP.
-* If all done NET_RX_SUCCESS
-*/
 int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 		   struct packet_type *pt, struct net_device *orig_dev)
 {
@@ -150,9 +139,13 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 		return NET_RX_DROP;
 	}
 
+    // Ignore packets not destined for us
+    if (skb->pkt_type != PACKET_HOST && skb->pkt_type != PACKET_BROADCAST) {
+        return NET_RX_DROP;
+    }
 
-    printk(KERN_INFO "Received packet: src=%pM, dst=%pM, proto=0x%04x ",
-           eth->h_source, eth->h_dest, ntohs(eth->h_proto));
+    printk(KERN_INFO "ETH Received 1722 packet: src=%pM, dst=%pM, proto=0x%04x, type %i ",
+           eth->h_source, eth->h_dest, ntohs(eth->h_proto), skb->pkt_type);
 
     printk(KERN_CONT "Data: ");
     for (int i = 0; i < skb->len; i++)
@@ -190,8 +183,6 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
     
     printk(KERN_INFO "ACFCAN: Received packet, stream_id=%016llx, busid=%i , msg_length=%i on %s\n", stream_id, busid, msg_length, dev->name);
     
-    
-    
 	//Iterate over all active devices
 	struct list_head *pos = NULL ; 
 	struct acfcan_cfg  *cfg  = NULL;
@@ -199,8 +190,7 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 	list_for_each ( pos , &acfcaninterface_list ) 
     { 
          cfg = list_entry ( pos, struct acfcan_cfg , list ); 
-        printk(KERN_INFO "Checking if=%s, stream=%016llx, bus=%i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId);
-        if (cfg->rx_streamid == stream_id && cfg->canbusId == busid && strcmp(cfg->ethif, dev->name) == 0) {
+         if (cfg->rx_streamid == stream_id && cfg->canbusId == busid && strcmp(cfg->ethif, dev->name) == 0) {
             printk ("Found match, if=%s, stream=%016llx, busid %i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId); 
             can_dev = cfg->can_netdev;
             break; //Only first match

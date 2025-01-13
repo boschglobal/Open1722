@@ -41,6 +41,8 @@
 #include <linux/can.h>
 #include <linux/can/can-ml.h>
 #include <linux/can/dev.h>
+#include <linux/list.h>
+
 #include <linux/can/skb.h>
 #include <net/rtnetlink.h>
 #include <linux/sysfs.h>
@@ -57,17 +59,17 @@ char *version = "2016";
 
 static struct packet_type ieee1722_packet_type;
 
-struct list_head acfcaninterface_list;
+LIST_HEAD(acfcaninterface_list);
 
 
 static void acfcan_rx(struct sk_buff *skb, struct net_device *dev)
 {
 	struct net_device_stats *stats = &dev->stats;
-
+	printk(KERN_INFO "ACF-CAN RX\n");
 	stats->rx_packets++;
 	stats->rx_bytes += can_skb_get_data_len(skb);
 
-	skb->pkt_type = PACKET_BROADCAST;
+	skb->pkt_type = PACKET_HOST;
 	skb->dev = dev;
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 
@@ -118,7 +120,6 @@ static netdev_tx_t acfcan_tx(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	/* perform standard echo handling for CAN network interfaces */
-
 	if (loop)
 	{
 		skb = can_create_echo_skb(skb);
@@ -168,8 +169,35 @@ static int acfcan_up(struct net_device *dev)
 	}
 
 	cfg->eth_netdev=ethif;
+	
+	printk(KERN_INFO "BEOFRE ADD, CF is 0x%p\n", cfg);
+	printk(KERN_INFO "About to add if=%s, stream=%016llx, bus=%i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId);
 
-	list_add(&acfcaninterface_list, &cfg->list);
+	struct list_head *pos = NULL ; 
+	struct acfcan_cfg *cfg2 = NULL;
+	int safe =0;
+	list_for_each ( pos , &acfcaninterface_list ) 
+    { 
+		if (safe++  > 10) {
+			break;
+		}
+         cfg2 = list_entry ( pos, struct acfcan_cfg , list ); 
+        printk(KERN_INFO "Entry: if=%s, stream=%016llx, bus=%i\n" , cfg2->ethif, cfg2->rx_streamid, cfg2->canbusId);
+    }
+	list_add(&cfg->list, &acfcaninterface_list);
+
+
+	printk(KERN_INFO "AFTER ADD\n");
+    safe = 0;
+	struct list_head *pos2 = NULL ; 
+	list_for_each ( pos2 , &acfcaninterface_list ) 
+    { 
+		if (safe++  > 10) {
+			break;
+		}
+         cfg2 = list_entry ( pos2, struct acfcan_cfg , list ); 
+        printk(KERN_INFO "Entry: if=%s, stream=%016llx, bus=%i\n" , cfg2->ethif, cfg2->rx_streamid, cfg2->canbusId);
+    }
 	printk(KERN_INFO "ACF-CAN interface %s up\n", dev->name);
 	return 0;
 }
@@ -181,7 +209,6 @@ static int acfcan_down(struct net_device *dev)
 		netdev_put(cfg->eth_netdev, &cfg->tracker);
 	}
 	list_del(&cfg->list);
-    INIT_LIST_HEAD(&cfg->list);
 	printk(KERN_INFO "ACF-CAN interface %s down\n", dev->name);
 	return 0;
 }
@@ -207,7 +234,6 @@ static void acfcan_setup(struct net_device *dev)
 	dev->hard_header_len = 0;
 	dev->addr_len = 0;
 	dev->tx_queue_len = 0;
-	//Try to lie about echo flag
 	dev->flags = IFF_NOARP;
 	can_set_ml_priv(dev, netdev_priv(dev));
 
@@ -238,7 +264,6 @@ static void acfcan_setup(struct net_device *dev)
 	cfg->sequenceNum = 0;
 	cfg->canbusId = 0;
 	cfg->flags = TX_ENABLE | RX_ENABLE; //todo: Make configurable
-	INIT_LIST_HEAD( & cfg->list);
 }
 
 //is this deleting or downing the interfae?
@@ -316,7 +341,6 @@ static int __init init_acfcan(void)
 static void __exit cleanup_acfcan(void)
 {
 	pr_info("Unloading ACF-CAN\n");
-	INIT_LIST_HEAD(&acfcaninterface_list);
 	dev_remove_pack(&ieee1722_packet_type);
 	rtnl_link_unregister(&acfcan_link_ops);
 }
