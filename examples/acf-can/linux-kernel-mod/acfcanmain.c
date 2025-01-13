@@ -48,6 +48,7 @@
 
 #include "1722ethernet.h"
 #include "acfcandev.h"
+#include "acfcandevsysfs.h"
 
 #include "acfcanmodulemetadata.h"
 
@@ -58,11 +59,6 @@ static struct packet_type ieee1722_packet_type;
 
 struct list_head acfcaninterface_list;
 
-
-static struct attribute_group dev_attr_group = {
-    .name = "acfcan", /* Subdirectory name in sysfs */
-    .attrs = (struct attribute **)dev_attrs,
-};
 
 static void acfcan_rx(struct sk_buff *skb, struct net_device *dev)
 {
