@@ -215,9 +215,11 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
 
     // Allocate a CAN skb
     if (is_fd) {
+        pr_debug("ACFCAN: Allocating CAN FD skb\n");
         can_skb = alloc_canfd_skb(can_dev, &cfd);
-        cf=(struct can_frame *)cfd; //This is a bit of a hack, but we know that the first part of the canfd_frame is the same as can_frame
+        cf = (struct can_frame *)cfd; //This is a bit of a hack, but the beginning of the struct is the same
     } else {
+        pr_debug("ACFCAN: Allocating CAN skb\n");
         can_skb = alloc_can_skb(can_dev, &cf);
     }
     if (!can_skb) {
@@ -232,7 +234,6 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
     if (Avtp_Can_GetRtr(can)) {
         cf->can_id |= CAN_RTR_FLAG;
     }
-    cf->can_dlc = msg_length - AVTP_CAN_HEADER_LEN - Avtp_Can_GetPad(can);
 
     if (is_fd) {
         cfd->flags = 0;
@@ -245,18 +246,26 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
         if (Avtp_Can_GetEsi(can)) {
             cfd->flags |= CANFD_ESI;
         }
+        cfd->len = msg_length - AVTP_CAN_HEADER_LEN - Avtp_Can_GetPad(can);
+    }
+    else {
+        cf->len = msg_length - AVTP_CAN_HEADER_LEN - Avtp_Can_GetPad(can);
     }
 
-    if (is_fd && cf->can_dlc > CANFD_MAX_DLEN) {
+    if (is_fd && cfd->len > CANFD_MAX_DLEN) {
         printk(KERN_ERR "DLC too large for CAN FD\n");
         return NET_RX_DROP;
     }
-    else if (!is_fd && cf->can_dlc > CAN_MAX_DLEN) {
+    else if (!is_fd && cf->len > CAN_MAX_DLEN) {
         printk(KERN_ERR "DLC too large for CAN\n");
         return NET_RX_DROP;
     }
 
-    memcpy(cf->data, skb->data  + sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t), cf->can_dlc);
+    if (is_fd) {
+        memcpy(cfd->data, skb->data  + sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t), cfd->len);
+    } else {
+        memcpy(cf->data, skb->data  + sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t), cf->len);
+    }
 
     can_skb->cb[SKB_CB_LOCATION] |= SKB_CB_MINE; // Mark the skb as our own
     // Send the CAN skb, disable loop (otherwise the module would receive and forward
