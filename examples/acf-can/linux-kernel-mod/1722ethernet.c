@@ -53,6 +53,8 @@ void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const st
     Avtp_Can_SetAcfMsgLength(can_header, (AVTP_CAN_HEADER_LEN+cfd->len+padSize)/AVTP_QUADLET_SIZE);
     Avtp_Can_SetPad(can_header, padSize);
 
+    pr_debug("Prepared AVTP ACFCAN msg for can id 0x%08x, len %i\n", Avtp_Can_GetCanIdentifier(can_header), cfd->len);
+    /*
     printk(KERN_INFO "Prepared CAN  packet for send,  ID: 0x%04x ", Avtp_Can_GetCanIdentifier(can_header));
     printk(KERN_CONT " frame data: ");
     for (int i = 0; i < cfd->len; i++)
@@ -60,6 +62,7 @@ void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const st
         printk(KERN_CONT "%02x ", cfd->data[i]);
     }
     printk(KERN_CONT "\n");
+    */
 
 }
 
@@ -75,7 +78,7 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
     struct acfcan_cfg *cfg = get_acfcan_cfg(can_dev);
     if (cfg->eth_netdev == NULL)
     {
-        printk(KERN_INFO "No ethernet device set for ACF-CAN device %s\n", can_dev->name);
+        printk(KERN_INFO "No ethernet device set for ACFCAN device %s\n", can_dev->name);
         return -1;
     }
     
@@ -106,10 +109,7 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
     data = skb_put(skb_eth, Avtp_Can_GetPad(&pdu.can)); // Add payload data
     memset(data,0,Avtp_Can_GetPad(&pdu.can));
 
-
-
     // Set up the Ethernet header
-
     struct ethhdr *eth = (struct ethhdr *)skb_push(skb_eth, sizeof(struct ethhdr));
 
     memcpy(eth->h_dest, cfg->dstmac, ETH_ALEN);
@@ -122,7 +122,7 @@ int forward_can_frame(struct net_device *can_dev, const struct sk_buff *skb_can)
     skb_eth->ip_summed = CHECKSUM_NONE;
 
     // Send the frame
-    printk(KERN_INFO "Sending Ethernet frame\n");
+    pr_debug("ACFCAN sending ethernet frame\n");
     dev_queue_xmit(skb_eth);
 
     return 0;
@@ -144,15 +144,17 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
         return NET_RX_DROP;
     }
 
-    printk(KERN_INFO "ETH Received 1722 packet: src=%pM, dst=%pM, proto=0x%04x, type %i ",
+    pr_debug("ETH Received 1722 packet: src=%pM, dst=%pM, proto=0x%04x, type %i\n",
            eth->h_source, eth->h_dest, ntohs(eth->h_proto), skb->pkt_type);
 
+    /*
     printk(KERN_CONT "Data: ");
     for (int i = 0; i < skb->len; i++)
     {
         printk(KERN_CONT "%02x ", skb->data[i]);
     }
     printk(KERN_CONT "\n");
+    */
 
 	//Check if this is an ACF-CAN packet
 	if (skb->len < sizeof(Avtp_Ntscf_t) + sizeof(Avtp_Can_t)) {
@@ -181,7 +183,7 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
     uint64_t stream_id = Avtp_Ntscf_GetStreamId(ntscf);
     uint8_t  busid = Avtp_Can_GetCanBusId(can);
     
-    printk(KERN_INFO "ACFCAN: Received packet, stream_id=%016llx, busid=%i , msg_length=%i on %s\n", stream_id, busid, msg_length, dev->name);
+    pr_debug("ACFCAN: Received valid ACFCAN packet, stream_id=%016llx, busid=%i , msg_length=%i on %s\n", stream_id, busid, msg_length, dev->name);
     
 	//Iterate over all active devices
 	struct list_head *pos = NULL ; 
@@ -191,14 +193,14 @@ int ieee1722_packet_handdler(struct sk_buff *skb, struct net_device *dev,
     { 
          cfg = list_entry ( pos, struct acfcan_cfg , list ); 
          if (cfg->rx_streamid == stream_id && cfg->canbusId == busid && strcmp(cfg->ethif, dev->name) == 0) {
-            printk ("Found match, if=%s, stream=%016llx, busid %i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId); 
+            pr_debug("ACFCAN Found match, if=%s, stream=%016llx, busid %i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId); 
             can_dev = cfg->can_netdev;
             break; //Only first match
         }
     }
 
     if (can_dev == NULL) {
-        printk(KERN_INFO "No receiving ACFCAN for stream=%016llx, busid %i\n", stream_id, busid);
+        printk(KERN_WARNING "No receiving ACFCAN for stream=%016llx, busid %i\n", stream_id, busid);
         return NET_RX_DROP;
     }
 

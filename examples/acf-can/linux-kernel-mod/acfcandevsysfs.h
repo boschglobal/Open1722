@@ -35,7 +35,7 @@
 
 #define NOCHANGE_IF_UP(what) ({ \
     if (netif_running(net_dev)) { \
-        printk(KERN_INFO "ACF-CAN: Cannot change %s while device %s is up\n", what, net_dev->name); \
+        printk(KERN_WARNING "ACFCAN: Cannot change %s while device %s is up\n", what, net_dev->name); \
         return -EBUSY; \
     }\
 })
@@ -56,17 +56,17 @@ static ssize_t dstmac_store(struct device *dev, struct device_attribute *attr, c
 	__u8 newmac[6] = {0,1,2,3,4,5};
 	int rc = sscanf(buf,"%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",&newmac[0],&newmac[1],&newmac[2],&newmac[3],&newmac[4],&newmac[5]);
 	if (rc != 6) {
-		printk(KERN_INFO "ACF-CAN Can not set destination MAC for %s to %s\n", net_dev->name,buf);
+		printk(KERN_WARNING "ACFCAN Can not set destination MAC for %s to %s\n", net_dev->name,buf);
 		return -EINVAL;
 	}
 	memcpy(cfg->dstmac, newmac, 6);
-	printk(KERN_INFO "ACF-CAN: Setting destination MAC for %s to %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx \n", net_dev->name, newmac[0],newmac[1],newmac[2],newmac[3],newmac[4],newmac[5]);
+	pr_debug("ACFCAN: Setting destination MAC for %s to %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx \n", net_dev->name, newmac[0],newmac[1],newmac[2],newmac[3],newmac[4],newmac[5]);
 	return 17;
 }
 
 static ssize_t dstmac_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	printk(KERN_INFO "ACF-CAN: Reading destination MAC\n");
+	pr_debug("ACFCAN: Reading destination MAC\n");
 	struct net_device *net_dev = to_net_dev(dev);
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
@@ -87,14 +87,14 @@ static ssize_t ethif_store(struct device *dev, struct device_attribute *attr, co
 	struct acfcan_cfg *cfg = get_acfcan_cfg(net_dev);
 
     if (count >= (IFNAMSIZ-1)) {
-        printk(KERN_INFO "ACF-CAN: Interface name too long\n");
+        printk(KERN_WARNING "ACFCAN: Interface name too long\n");
         return -EINVAL;
     }
 
     memcpy(cfg->ethif, buf, count);
     cfg->ethif[count] = '\0';
 
-	printk(KERN_INFO "ACF-CAN Storing interface %s for %s\n", buf,net_dev->name);
+	pr_debug("ACFCAN Storing interface %s for %s\n", buf,net_dev->name);
 	return count;
 }
 
@@ -127,14 +127,13 @@ static ssize_t tx_streamid_store(struct device *dev, struct device_attribute *at
     __u64 tx_streamid;
     int rc = sscanf(buf, "%llx", &tx_streamid);
     if (!rc) {
-        printk(KERN_INFO "ACF-CAN: Invalid stream id\n");
+        printk(KERN_WARNING "ACFCAN: Invalid stream id\n");
         return -EINVAL;
     }
 
     cfg->tx_streamid = tx_streamid;
 
-
-	printk(KERN_INFO "ACF-CAN TX streamid 0x%016llx for %s\n", tx_streamid,net_dev->name);
+	pr_debug("ACFCAN TX streamid 0x%016llx for %s\n", tx_streamid,net_dev->name);
 	return count;
 }
 
@@ -155,14 +154,14 @@ static ssize_t rx_streamid_store(struct device *dev, struct device_attribute *at
     __u64 rx_streamid;
     int rc = sscanf(buf, "%llx", &rx_streamid);
     if (!rc) {
-        printk(KERN_INFO "ACF-CAN: Invalid stream id\n");
+        printk(KERN_WARNING "ACFCAN: Invalid stream id\n");
         return -EINVAL;
     }
 
     cfg->rx_streamid = rx_streamid;
 
 
-	printk(KERN_INFO "ACF-CAN RX streamid 0x%016llx for %s\n", rx_streamid,net_dev->name);
+	pr_debug("ACFCAN RX streamid 0x%016llx for %s\n", rx_streamid,net_dev->name);
 	return count;
 }
 
@@ -181,14 +180,14 @@ static ssize_t busid_store(struct device *dev, struct device_attribute *attr, co
     __u8 busid;
     int rc = sscanf(buf, "%hhu", &busid);
     if (!rc) {
-        printk(KERN_INFO "ACF-CAN: Invalid bus id\n");
+        printk(KERN_WARNING "ACFCAN: Invalid bus id\n");
         return -EINVAL;
     }
 
     cfg->canbusId = busid;
 
 
-	printk(KERN_INFO "ACF-CAN setting busid to %u for %s\n", busid,net_dev->name);
+	pr_debug("ACFCAN setting busid to %u for %s\n", busid,net_dev->name);
 	return count;
 }
 

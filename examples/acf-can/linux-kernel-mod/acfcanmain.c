@@ -151,11 +151,9 @@ static int acfcan_change_mtu(struct net_device *dev, int new_mtu)
 	return 0;
 }
 
-// Todo only try to reserve eth device here. not in newlink
-// or sysfs
+
 static int acfcan_up(struct net_device *dev)
 {
-	//netif_start_queue(dev);
 	struct acfcan_cfg *cfg = get_acfcan_cfg(dev);
 
 	//chek we have an a valid ethernet device
@@ -164,41 +162,15 @@ static int acfcan_up(struct net_device *dev)
 	ethif = netdev_get_by_name(&init_net, cfg->ethif, &cfg->tracker, GFP_KERNEL);
 	
 	if (!ethif) {
-		printk(KERN_INFO "ACF-CAN Can not use interface %s for %s\n", cfg->ethif,dev->name);
+		printk(KERN_WARNING "ACFCAN Can not use interface %s for %s\n", cfg->ethif,dev->name);
 		return -EINVAL;
 	}
 
 	cfg->eth_netdev=ethif;
 	
-	printk(KERN_INFO "BEOFRE ADD, CF is 0x%p\n", cfg);
-	printk(KERN_INFO "About to add if=%s, stream=%016llx, bus=%i\n" , cfg->ethif, cfg->rx_streamid, cfg->canbusId);
-
-	struct list_head *pos = NULL ; 
-	struct acfcan_cfg *cfg2 = NULL;
-	int safe =0;
-	list_for_each ( pos , &acfcaninterface_list ) 
-    { 
-		if (safe++  > 10) {
-			break;
-		}
-         cfg2 = list_entry ( pos, struct acfcan_cfg , list ); 
-        printk(KERN_INFO "Entry: if=%s, stream=%016llx, bus=%i\n" , cfg2->ethif, cfg2->rx_streamid, cfg2->canbusId);
-    }
 	list_add(&cfg->list, &acfcaninterface_list);
 
-
-	printk(KERN_INFO "AFTER ADD\n");
-    safe = 0;
-	struct list_head *pos2 = NULL ; 
-	list_for_each ( pos2 , &acfcaninterface_list ) 
-    { 
-		if (safe++  > 10) {
-			break;
-		}
-         cfg2 = list_entry ( pos2, struct acfcan_cfg , list ); 
-        printk(KERN_INFO "Entry: if=%s, stream=%016llx, bus=%i\n" , cfg2->ethif, cfg2->rx_streamid, cfg2->canbusId);
-    }
-	printk(KERN_INFO "ACF-CAN interface %s up\n", dev->name);
+	printk(KERN_INFO "ACFCAN interface %s on %s up.  TX-streamid 0x%llX, RX-streamid 0x%0llX, bus-id %i.\n", dev->name, cfg->ethif, cfg->tx_streamid, cfg->rx_streamid, cfg->canbusId);
 	return 0;
 }
 
@@ -209,7 +181,7 @@ static int acfcan_down(struct net_device *dev)
 		netdev_put(cfg->eth_netdev, &cfg->tracker);
 	}
 	list_del(&cfg->list);
-	printk(KERN_INFO "ACF-CAN interface %s down\n", dev->name);
+	printk(KERN_INFO "ACFCAN interface %s down\n", dev->name);
 	return 0;
 }
 
@@ -238,7 +210,7 @@ static void acfcan_setup(struct net_device *dev)
 	can_set_ml_priv(dev, netdev_priv(dev));
 
     void *canpriv = can_get_ml_priv(dev);
-	printk(KERN_INFO "Setting up device %s, priv is at %p \n", dev->name, canpriv);
+	pr_debug ("Setting up new acfcan device %s, priv is at %p \n", dev->name, canpriv);
 
 
 	/* set flags according to driver capabilities */
@@ -278,31 +250,28 @@ static void acfcan_remove(struct net_device *dev, struct list_head *head)
 
 	unregister_netdevice(dev);
 
-	printk(KERN_INFO "ACF-CAN remove interface %s\n", dev->name);
+	printk(KERN_INFO "ACFCAN interface %s unregistered\n", dev->name);
 }
 
 static int acfcan_newlink(struct net *net, struct net_device *dev,
                       struct nlattr *tb[], struct nlattr *data[],
                       struct netlink_ext_ack *extack)
 {
-
-    void *canpriv = can_get_ml_priv(dev);
-	printk(KERN_INFO "Newlink for device %s, priv is at %p \n", dev->name, canpriv);
-
-   //Need a new interface
 	int err = register_netdevice(dev);
 
     if (err) {
-        printk(KERN_ERR "Failed to register netdevice\n");
+        printk(KERN_ERR "Failed to register acfcan netdevice %s\n", dev->name);
         return err;
     }
 
-	printk(KERN_INFO "Creating group for device %s\n", dev->name);
+	pr_debug("Creating group for device %s\n", dev->name);
 	int ret = sysfs_create_group(&dev->dev.kobj, &dev_attr_group);
     if (ret) {
         pr_err("Failed to create sysfs group for net_device\n");
     }
-	
+
+	printk(KERN_INFO "Registered new ACFCAN device %s\n", dev->name);
+
 	return 0;
 }
 
@@ -318,14 +287,13 @@ static struct rtnl_link_ops acfcan_link_ops __read_mostly = {
 
 static int __init init_acfcan(void)
 {
-	pr_info("ACF-CAN\n");
 	if (strcmp(version, "2016") == 0)
 	{
-		pr_info("Using version: %s\n", version);
+		printk(KERN_INFO "ACFCAN version: %s\n", version);
 	}
 	else
 	{
-		pr_info("Unsupported 1722 version %s\n", version);
+		printk(KERN_ERR "ACFCAN unsupported 1722 version %s\n", version);
 		return -1;
 	}
 
@@ -340,7 +308,7 @@ static int __init init_acfcan(void)
 
 static void __exit cleanup_acfcan(void)
 {
-	pr_info("Unloading ACF-CAN\n");
+	pr_info("Unloading ACFCAN\n");
 	dev_remove_pack(&ieee1722_packet_type);
 	rtnl_link_unregister(&acfcan_link_ops);
 }
@@ -349,4 +317,4 @@ module_init(init_acfcan);
 module_exit(cleanup_acfcan);
 
 module_param(version, charp, 0);
-MODULE_PARM_DESC(version, "IEEE 1722 version");
+MODULE_PARM_DESC(version, "IEEE-1722 version");
