@@ -57,3 +57,10 @@ sudo ip link set up acfcan0
 ```
 
 watch kernel log via `dmesg --follow` to see any any warnings.
+
+
+
+cangen -e -f -b -R -v  ecu2
+echo 'module acfcan +p'>  /sys/kernel/debug/dynamic_debug/control
+
+0300BD19##174FC606AA7CD935474FC606A
