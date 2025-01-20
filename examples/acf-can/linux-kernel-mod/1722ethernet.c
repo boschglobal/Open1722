@@ -22,10 +22,10 @@ void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const st
     Avtp_Can_Init(can_header);
     Avtp_Can_SetCanBusId(can_header, cfg->canbusId); 
     if (cfd->can_id & CAN_RTR_FLAG) {
-        Avtp_Can_SetRtr(can_header, 1);
+        Avtp_Can_EnableRtr(can_header);
     } 
     if (cfd->can_id & CAN_EFF_FLAG) {
-        Avtp_Can_SetEff(can_header, 1);
+        Avtp_Can_EnableEff(can_header);
     }
 
     if ( cfd->can_id & CAN_EFF_FLAG) {
@@ -38,13 +38,13 @@ void prepare_can_header(Avtp_Can_t *can_header, struct acfcan_cfg *cfg, const st
 
     if ( can_is_canfd_skb(skb) ) {
         if ( cfd->flags & CANFD_BRS ) {
-            Avtp_Can_SetBrs(can_header, 1);
+            Avtp_Can_EnableBrs(can_header);
         }
         if ( cfd->flags & CANFD_FDF ) {
-            Avtp_Can_SetFdf(can_header, 1);
+            Avtp_Can_EnableFdf(can_header);
         }
         if ( cfd->flags & CANFD_ESI ) {
-            Avtp_Can_SetEsi(can_header, 1);
+            Avtp_Can_GetEsi(can_header);
         }
     } 
 
