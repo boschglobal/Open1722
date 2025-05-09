@@ -78,7 +78,7 @@ struct sockaddr_in sk_udp_addr;
 const struct device *const can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 
 static K_SEM_DEFINE(iface_up, 0, 1);
-CAN_MSGQ_DEFINE(rx_msgq, 20);
+CAN_MSGQ_DEFINE(rx_msgq, 2);
 
 struct k_thread can_to_avtp_thread, avtp_to_can_thread;
 K_THREAD_STACK_DEFINE(can_to_avtp_stack, THREAD_STACK_SIZE);
@@ -241,7 +241,7 @@ void can_to_avtp_runnable(void* p1, void* p2, void* p3) {
 
         // Read acf_num_msgs number of CAN frames from the CAN socket
         int i = 0;
-        while (i < num_acf_msgs) {
+ //       while (i < num_acf_msgs) {
             // Get payload -- will 'spin' here until we get the requested number
             //                of CAN frames.
             res = k_msgq_get(&rx_msgq, &(can_frames[i].cc), K_FOREVER);
@@ -250,8 +250,10 @@ void can_to_avtp_runnable(void* p1, void* p2, void* p3) {
                 printf("%d\n", res);
                 continue;
             }
-            i++;
-        }
+//            i++;
+//        }
+
+
 
         // Pack all the read frames into an AVTP frame
         pdu_length = can_to_avtp(can_frames, can_variant, pdu, use_udp, use_tscf,
