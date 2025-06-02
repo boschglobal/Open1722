@@ -8,7 +8,7 @@ config ACF_CAN_BRIDGE_USE_TSCF
     int "Use TSCF encapsulation"
     default 0
 
-config ACF_CAN_BRIDGE_SEND_MAC_ADDR
+config ACF_CAN_BRIDGE_PEER_MAC_ADDR
     string "MAC Address to which ACF CAN frames are sent"
     default "aa:bb:cc:dd:ee:ff"
 
@@ -35,5 +35,9 @@ config ACF_CAN_BRIDGE_LISTENER_STREAM_ID
 config ACF_CAN_BRIDGE_NUM_ACF_MSGS
     int "Number of ACF CAN messages to send in a single frame"
     default 1
+
+config ACF_CAN_BRIDGE_USE_DYNAMIC_PEER_MAC
+    bool "Use dynamic peer MAC address for destination"
+    default y
 
 source "Kconfig.zephyr"
