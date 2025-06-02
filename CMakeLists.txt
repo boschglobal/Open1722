@@ -69,7 +69,7 @@ if(CCACHE_BIN)
 endif()
 
 add_subdirectory(src)
-if (NOT CMAKE_SYSTEM_NAME STREQUAL "QNX")
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "QNX" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Generic")
     add_custom_target(examples)
     add_subdirectory(examples)
 endif()
