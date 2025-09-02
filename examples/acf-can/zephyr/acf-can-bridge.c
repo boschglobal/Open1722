@@ -121,7 +121,7 @@ static int init_can_rx()
 }
 
 static void iface_up_handler(struct net_mgmt_event_callback *cb,
-                 uint32_t mgmt_event, struct net_if *iface)
+                 uint64_t mgmt_event, struct net_if *iface)
 {
     if (mgmt_event == NET_EVENT_IF_UP) {
         k_sem_give(&iface_up);
@@ -378,7 +378,7 @@ int main(void)
         printf("\tDestination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n", macaddr[0], macaddr[1], macaddr[2],
                                                         macaddr[3], macaddr[4], macaddr[5]);
     }
-    printf("\tListener Stream ID: 0x%llx, Talker Stream ID: 0x%llx\n", listener_stream_id, talker_stream_id);
+    printf("\tListener Stream ID: 0x%"PRIx64", Talker Stream ID: 0x%"PRIx64"\n", listener_stream_id, talker_stream_id);
     printf("\tNumber of ACF messages per AVTP frame in talker stream: %d\n", num_acf_msgs);
 
     // Open a CAN socket for reading frames
